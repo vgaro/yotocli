@@ -1,0 +1,9 @@
+# Binaries
+yoto
+yoto.exe
+
+# Config
+config.yaml
+
+# OS
+.DS_Store
