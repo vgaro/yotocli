@@ -40,7 +40,7 @@ func listPlaylistsHandler(ctx context.Context, req *mcp.CallToolRequest, input E
 
 // Get Playlist
 type GetPlaylistInput struct {
-	PlaylistID string `json:"playlist_id" jsonschema:"description=The UUID of the playlist/card"`
+	PlaylistID string `json:"playlist_id" jsonschema:"The UUID of the playlist/card"`
 }
 type GetPlaylistOutput struct {
 	Card *yoto.Card `json:"card"`
@@ -69,7 +69,7 @@ func listDevicesHandler(ctx context.Context, req *mcp.CallToolRequest, input Emp
 
 // Get Device Status
 type GetDeviceStatusInput struct {
-	DeviceID string `json:"device_id" jsonschema:"description=The Device ID"`
+	DeviceID string `json:"device_id" jsonschema:"The Device ID"`
 }
 type GetDeviceStatusOutput struct {
 	Status *yoto.DeviceStatus `json:"status"`
@@ -85,9 +85,9 @@ func getDeviceStatusHandler(ctx context.Context, req *mcp.CallToolRequest, input
 
 // Create Playlist
 type CreatePlaylistInput struct {
-	Title       string `json:"title" jsonschema:"description=The title of the new playlist"`
-	Description string `json:"description,omitempty" jsonschema:"description=Optional description"`
-	Author      string `json:"author,omitempty" jsonschema:"description=Optional author name"`
+	Title       string `json:"title" jsonschema:"The title of the new playlist"`
+	Description string `json:"description,omitempty" jsonschema:"Optional description"`
+	Author      string `json:"author,omitempty" jsonschema:"Optional author name"`
 }
 type SimpleOutput struct {
 	Message string `json:"message"`
@@ -113,7 +113,7 @@ func createPlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input 
 
 // Delete Playlist
 type DeletePlaylistInput struct {
-	PlaylistID string `json:"playlist_id" jsonschema:"description=The UUID of the playlist to delete"`
+	PlaylistID string `json:"playlist_id" jsonschema:"The UUID of the playlist to delete"`
 }
 
 func deletePlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input DeletePlaylistInput) (*mcp.CallToolResult, SimpleOutput, error) {
