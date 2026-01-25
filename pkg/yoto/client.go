@@ -179,6 +179,74 @@ func (c *Client) DownloadFile(url string, destPath string) error {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.RawBody())
-	return err
-}
+		_, err = io.Copy(out, resp.RawBody())
+
+		return err
+
+	}
+
+	
+
+	func (c *Client) ListDevices() ([]Device, error) {
+
+		var result DevicesResponse
+
+		resp, err := c.http.R().
+
+			SetResult(&result).
+
+			Get("/device-v2/devices/mine")
+
+	
+
+		if err != nil {
+
+			return nil, err
+
+		}
+
+		if resp.IsError() {
+
+			return nil, fmt.Errorf("api error: %s", resp.String())
+
+		}
+
+		return result.Devices, nil
+
+	}
+
+	
+
+	func (c *Client) GetDeviceStatus(deviceID string) (*DeviceStatus, error) {
+
+		var result struct {
+
+			Status DeviceStatus `json:"status"`
+
+		}
+
+		resp, err := c.http.R().
+
+			SetResult(&result).
+
+			Get("/device-v2/" + deviceID + "/status")
+
+	
+
+		if err != nil {
+
+			return nil, err
+
+		}
+
+		if resp.IsError() {
+
+			return nil, fmt.Errorf("api error: %s", resp.String())
+
+		}
+
+		return &result.Status, nil
+
+	}
+
+	

@@ -1,24 +1,26 @@
-## yoto ls
+## yoto status
 
-List playlists or tracks
+Check the status of your Yoto players
 
 ### Synopsis
 
-List all playlists in your library, or list tracks within a specific playlist.
-Supports slash syntax for deep listing.
-Examples:
-  yoto ls
-  yoto ls "Bedtime Stories"
-  yoto ls "Bedtime/1"
+Lists all Yoto players associated with your account, showing battery level, charging status, and what is currently playing.
 
 ```
-yoto ls [playlist[/track]] [flags]
+yoto status [flags]
+```
+
+### Examples
+
+```
+  # Check status of all players
+  yoto status
 ```
 
 ### Options
 
 ```
-  -h, --help   help for ls
+  -h, --help   help for status
 ```
 
 ### Options inherited from parent commands

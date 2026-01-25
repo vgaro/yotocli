@@ -93,7 +93,14 @@ yoto import "https://youtu.be/..." --playlist "Bedtime Stories"
 yoto import "https://youtu.be/..."
 ```
 
-### 6. Managing Playlists
+### 7. Device Control
+Check your player's status.
+```bash
+# Check battery and current activity
+yoto status
+```
+
+### 8. Managing Playlists
 Treat your library like a filesystem.
 
 **Add a track:**

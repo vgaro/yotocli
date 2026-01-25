@@ -67,3 +67,27 @@ type LibraryItem struct {
 	CardID string `json:"cardId"`
 	Card   Card   `json:"card"`
 }
+
+// Device represents a Yoto player
+type Device struct {
+	ID         string `json:"deviceId"`
+	Name       string `json:"name"`
+	DeviceType string `json:"deviceType"`
+	Online     bool   `json:"online"`
+	Status     *DeviceStatus
+}
+
+type DeviceStatus struct {
+	BatteryLevel int    `json:"batteryLevel"`
+	IsCharging   int    `json:"isCharging"` // 0=No, 1=Yes
+	ActiveCard   string `json:"activeCard"` // "none" or card ID
+	Volume       int    `json:"volume"`
+}
+
+type DevicesResponse struct {
+	Devices []Device `json:"devices"`
+}
+
+type DeviceStatusResponse struct {
+	Status DeviceStatus `json:"status"`
+}
