@@ -96,11 +96,21 @@ yoto import "https://youtu.be/..."
 ### 7. Device Control
 Check your player's status.
 ```bash
-# Check battery and current activity
+# Check battery, current activity, and volume
 yoto status
 ```
 
-### 8. Managing Playlists
+### 8. Shell Completion
+Generate auto-completion scripts for your shell.
+```bash
+# For Bash
+yoto completion bash | sudo tee /etc/bash_completion.d/yoto > /dev/null
+
+# For Zsh
+yoto completion zsh > "${fpath[1]}/_yoto"
+```
+
+### 9. Managing Playlists
 Treat your library like a filesystem.
 
 **Add a track:**
