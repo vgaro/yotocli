@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,8 +28,28 @@ It allows for uploading files, creating playlists, and managing device state dir
 		token := config.GetAccessToken()
 		clientID := config.GetClientID()
 		apiClient = yoto.NewClient(token, clientID)
-		
-		// Optional: Auto-refresh if expired (logic to be added)
+
+		// Check if token is valid by making a lightweight call
+		// If unauthorized, try to refresh
+		if token != "" {
+			_, err := apiClient.ListDevices()
+			if err != nil && (strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "401")) {
+				// fmt.Println("Token expired, attempting refresh...")
+				refreshToken := config.GetRefreshToken()
+				if refreshToken != "" {
+					newTokens, refreshErr := apiClient.RefreshToken(refreshToken)
+					if refreshErr == nil {
+						config.SetToken(newTokens.AccessToken, newTokens.RefreshToken)
+						if err := config.Save(); err == nil {
+							// Re-init client with new token
+							apiClient = yoto.NewClient(newTokens.AccessToken, clientID)
+							// fmt.Println("Token refreshed.")
+						}
+					}
+				}
+			}
+		}
+
 		return nil
 	},
 }
