@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
+	"github.com/vgaro/yotocli/internal/actions"
 	"github.com/vgaro/yotocli/pkg/yoto"
 )
 
@@ -124,6 +125,72 @@ func deletePlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input 
 	return nil, SimpleOutput{Message: fmt.Sprintf("Playlist %s deleted", input.PlaylistID)}, nil
 }
 
+// Edit Playlist
+type EditPlaylistInput struct {
+	PlaylistID  string `json:"playlist_id" jsonschema:"The UUID of the playlist to edit"`
+	Title       string `json:"title,omitempty" jsonschema:"New title (optional)"`
+	Description string `json:"description,omitempty" jsonschema:"New description (optional)"`
+	Author      string `json:"author,omitempty" jsonschema:"New author (optional)"`
+}
+
+func editPlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input EditPlaylistInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	card, err := apiClient.GetCard(input.PlaylistID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	changed := false
+	if input.Title != "" {
+		card.Title = input.Title
+		changed = true
+	}
+
+	if card.Metadata == nil {
+		card.Metadata = &yoto.Metadata{}
+	}
+
+	if input.Description != "" {
+		card.Metadata.Description = input.Description
+		changed = true
+	}
+	if input.Author != "" {
+		card.Metadata.Author = input.Author
+		changed = true
+	}
+
+	if !changed {
+		return nil, SimpleOutput{Message: "No changes requested"}, nil
+	}
+
+	err = apiClient.UpdateCard(card.CardID, card)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	return nil, SimpleOutput{Message: "Playlist updated successfully"}, nil
+}
+
+// Import from URL
+type ImportFromURLInput struct {
+	URL          string `json:"url" jsonschema:"The URL of the audio/video to download (e.g., YouTube)"`
+	PlaylistName string `json:"playlist_name,omitempty" jsonschema:"The name of the playlist to add to (creates new if empty or not found)"`
+	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+}
+
+func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input ImportFromURLInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	// Logger that writes to stderr so MCP client doesn't see it as response, or just ignore.
+	// For MCP, we usually want to be silent or return progress via notifications (complex).
+	// Let's just log to stderr for server ops debugging.
+	logger := func(format string, args ...interface{}) {
+		// fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+
+	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, !input.NoNormalize, logger)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Import successful"}, nil
+}
 
 // mcpCmd represents the mcp command
 var mcpCmd = &cobra.Command{
@@ -144,6 +211,8 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "get_device_status", Description: "Check battery/volume of a player"}, getDeviceStatusHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "create_playlist", Description: "Create a new empty playlist"}, createPlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
 
 		// Start Server
 		// Using StdioTransport from the SDK

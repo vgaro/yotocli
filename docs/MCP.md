@@ -59,6 +59,14 @@ Creates a new empty playlist.
 Deletes a playlist.
 - **Input:** `playlist_id` (string)
 
+### `edit_playlist`
+Updates the metadata of a playlist.
+- **Input:** `playlist_id` (string), `title` (optional), `description` (optional), `author` (optional)
+
+### `import_from_url`
+Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
+- **Input:** `url` (string), `playlist_name` (optional - creates new if empty), `no_normalize` (boolean, optional)
+
 ## Example Prompts
 
 Once configured, you can ask Claude things like:
@@ -66,4 +74,6 @@ Once configured, you can ask Claude things like:
 - "List my Yoto playlists."
 - "What is the battery level of the Kids' Room Yoto?"
 - "Create a new playlist called 'Sleepy Time' with author 'Dad'."
+- "Rename the 'Sleepy Time' playlist to 'Bedtime'."
+- "Add this video https://youtube.com/... to my 'Bedtime' playlist."
 - "Show me the tracks in the 'Bedtime Stories' playlist."
