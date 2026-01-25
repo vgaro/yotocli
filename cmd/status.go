@@ -53,7 +53,7 @@ devices, err := apiClient.ListDevices()
 
 		// Print Table
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "Name\tStatus\tBattery\tPlaying")
+		fmt.Fprintln(w, "Name\tStatus\tBattery\tVolume\tPlaying")
 		
 		for _, d := range devices {
 			onlineStr := "Offline"
@@ -62,6 +62,7 @@ devices, err := apiClient.ListDevices()
 			}
 
 			batteryStr := "-"
+			volumeStr := "-"
 			playingStr := "-"
 
 			if d.Status != nil {
@@ -70,6 +71,7 @@ devices, err := apiClient.ListDevices()
 					charging = "⚡ "
 				}
 				batteryStr = fmt.Sprintf("%d%%%s", d.Status.BatteryLevel, charging)
+				volumeStr = fmt.Sprintf("%d", d.Status.Volume)
 				
 				if d.Status.ActiveCard != "none" && d.Status.ActiveCard != "" {
 					playingStr = d.Status.ActiveCard // Ideally we'd resolve this to a Title
@@ -78,7 +80,7 @@ devices, err := apiClient.ListDevices()
 				}
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", d.Name, onlineStr, batteryStr, playingStr)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", d.Name, onlineStr, batteryStr, volumeStr, playingStr)
 		}
 		w.Flush()
 		return nil
