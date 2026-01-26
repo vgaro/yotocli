@@ -192,6 +192,107 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 	return nil, SimpleOutput{Message: "Import successful"}, nil
 }
 
+// Set Volume
+type SetVolumeInput struct {
+	Volume   int    `json:"volume" jsonschema:"Volume level (0-100)"`
+	DeviceID string `json:"device_id,omitempty" jsonschema:"Device ID (optional, defaults to first found)"`
+}
+
+func setVolumeHandler(ctx context.Context, req *mcp.CallToolRequest, input SetVolumeInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	if input.Volume < 0 || input.Volume > 100 {
+		return nil, SimpleOutput{}, fmt.Errorf("volume must be 0-100")
+	}
+
+	targetID := input.DeviceID
+	if targetID == "" {
+		devices, err := apiClient.ListDevices()
+		if err != nil {
+			return nil, SimpleOutput{}, err
+		}
+		if len(devices) == 0 {
+			return nil, SimpleOutput{}, fmt.Errorf("no devices found")
+		}
+		targetID = devices[0].ID
+	}
+
+	err := apiClient.SetVolume(targetID, input.Volume)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: fmt.Sprintf("Volume set to %d", input.Volume)}, nil
+}
+
+// Play Card
+type PlayCardInput struct {
+	PlaylistID string `json:"playlist_id" jsonschema:"The ID of the playlist to play"`
+	DeviceID   string `json:"device_id,omitempty" jsonschema:"Device ID (optional, defaults to first found)"`
+}
+
+func playCardHandler(ctx context.Context, req *mcp.CallToolRequest, input PlayCardInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	targetID := input.DeviceID
+	if targetID == "" {
+		devices, err := apiClient.ListDevices()
+		if err != nil {
+			return nil, SimpleOutput{}, err
+		}
+		if len(devices) == 0 {
+			return nil, SimpleOutput{}, fmt.Errorf("no devices found")
+		}
+		targetID = devices[0].ID
+	}
+
+	err := apiClient.PlayCard(targetID, input.PlaylistID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Playback started"}, nil
+}
+
+// Stop/Pause Player
+type PlayerControlInput struct {
+	DeviceID string `json:"device_id,omitempty" jsonschema:"Device ID (optional, defaults to first found)"`
+}
+
+func stopPlayerHandler(ctx context.Context, req *mcp.CallToolRequest, input PlayerControlInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	targetID := input.DeviceID
+	if targetID == "" {
+		devices, err := apiClient.ListDevices()
+		if err != nil {
+			return nil, SimpleOutput{}, err
+		}
+		if len(devices) == 0 {
+			return nil, SimpleOutput{}, fmt.Errorf("no devices found")
+		}
+		targetID = devices[0].ID
+	}
+
+	err := apiClient.StopPlayer(targetID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Playback stopped"}, nil
+}
+
+func pausePlayerHandler(ctx context.Context, req *mcp.CallToolRequest, input PlayerControlInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	targetID := input.DeviceID
+	if targetID == "" {
+		devices, err := apiClient.ListDevices()
+		if err != nil {
+			return nil, SimpleOutput{}, err
+		}
+		if len(devices) == 0 {
+			return nil, SimpleOutput{}, fmt.Errorf("no devices found")
+		}
+		targetID = devices[0].ID
+	}
+
+	err := apiClient.PausePlayer(targetID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Playback paused"}, nil
+}
+
 // mcpCmd represents the mcp command
 var mcpCmd = &cobra.Command{
 	Use:    "mcp",
@@ -213,6 +314,10 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "pause_player", Description: "Pause playback on a device"}, pausePlayerHandler)
 
 		// Start Server
 		// Using StdioTransport from the SDK

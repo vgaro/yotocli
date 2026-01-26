@@ -82,11 +82,53 @@ func (c *Client) DeleteCard(id string) error {
 	if err != nil {
 		return err
 	}
-	if resp.IsError() {
-		return fmt.Errorf("api error: %s", resp.String())
+		if resp.IsError() {
+			return fmt.Errorf("api error: %s", resp.String())
+		}
+		return nil
 	}
-	return nil
-}
+	
+	func (c *Client) PlayCard(deviceID string, cardID string) error {
+		resp, err := c.http.R().
+			SetBody(map[string]string{"cardId": cardID}).
+			Post("/device-v2/" + deviceID + "/play")
+	
+		if err != nil {
+			return err
+		}
+		if resp.IsError() {
+			return fmt.Errorf("api error: %s", resp.String())
+		}
+		return nil
+	}
+	
+	func (c *Client) StopPlayer(deviceID string) error {
+		resp, err := c.http.R().
+			Post("/device-v2/" + deviceID + "/stop")
+	
+		if err != nil {
+			return err
+		}
+		if resp.IsError() {
+			return fmt.Errorf("api error: %s", resp.String())
+		}
+		return nil
+	}
+	
+	func (c *Client) PausePlayer(deviceID string) error {
+		resp, err := c.http.R().
+			Post("/device-v2/" + deviceID + "/pause")
+	
+		if err != nil {
+			return err
+		}
+		if resp.IsError() {
+			return fmt.Errorf("api error: %s", resp.String())
+		}
+		return nil
+	}
+		
+		
 
 func (c *Client) UpdateCard(id string, card *Card) error {
 	// Sanitize icons: Convert https URLs back to yoto:#hash format
@@ -245,8 +287,38 @@ func (c *Client) DownloadFile(url string, destPath string) error {
 
 		}
 
-		return &result.Status, nil
+			return &result.Status, nil
 
-	}
+		}
+
+		
+
+		func (c *Client) SetVolume(deviceID string, volume int) error {
+
+			resp, err := c.http.R().
+
+				SetBody(map[string]int{"volume": volume}).
+
+				Post("/device-v2/" + deviceID + "/volume")
+
+		
+
+			if err != nil {
+
+				return err
+
+			}
+
+			if resp.IsError() {
+
+				return fmt.Errorf("api error: %s", resp.String())
+
+			}
+
+			return nil
+
+		}
+
+		
 
 	

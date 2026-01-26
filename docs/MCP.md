@@ -67,12 +67,31 @@ Updates the metadata of a playlist.
 Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
 - **Input:** `url` (string), `playlist_name` (optional - creates new if empty), `no_normalize` (boolean, optional)
 
+### `set_volume`
+Sets the volume of a Yoto player.
+- **Input:** `volume` (integer, 0-100), `device_id` (optional)
+
+### `play_card`
+Starts playing a playlist on a device.
+- **Input:** `playlist_id` (string), `device_id` (optional)
+
+### `stop_player`
+Stops playback on a device.
+- **Input:** `device_id` (optional)
+
+### `pause_player`
+Pauses playback on a device.
+- **Input:** `device_id` (optional)
+
 ## Example Prompts
 
 Once configured, you can ask Claude things like:
 
 - "List my Yoto playlists."
 - "What is the battery level of the Kids' Room Yoto?"
+- "Set the volume on the Yoto to 15."
+- "Play the 'Bedtime Stories' playlist."
+- "Pause the music."
 - "Create a new playlist called 'Sleepy Time' with author 'Dad'."
 - "Rename the 'Sleepy Time' playlist to 'Bedtime'."
 - "Add this video https://youtube.com/... to my 'Bedtime' playlist."
