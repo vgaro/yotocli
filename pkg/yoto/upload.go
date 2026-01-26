@@ -2,9 +2,12 @@ package yoto
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
-	"time"
+		"fmt"
+		"io"
+		"os"
+		"time"
+	
+		"github.com/go-resty/resty/v2"
 )
 
 type UploadURLResponse struct {
@@ -80,53 +83,107 @@ func (c *Client) GetUploadURL() (*UploadURLResponse, error) {
 
 func (c *Client) UploadFile(path string, uploadURL string) error {
 
+
+
 	file, err := os.Open(path)
+
+
 
 	if err != nil {
 
+
+
 		return err
 
+
+
 	}
+
+
 
 	defer file.Close()
 
 
 
-	stat, err := file.Stat()
+
+
+
+
+	data, err := io.ReadAll(file)
+
+
 
 	if err != nil {
 
+
+
 		return err
+
+
 
 	}
 
 
 
-	resp, err := c.http.R().
+
+
+
+
+	// Use a fresh client to avoid sending Yoto auth headers to S3
+
+
+
+	resp, err := resty.New().R().
+
+
 
 		SetHeader("Content-Type", "audio/mp3").
 
-		SetHeader("Content-Length", fmt.Sprintf("%d", stat.Size())).
 
-		SetBody(file).
+
+		SetHeader("Content-Length", fmt.Sprintf("%d", len(data))).
+
+
+
+		SetBody(data).
+
+
 
 		Put(uploadURL)
 
 
 
+
+
+
+
 	if err != nil {
+
+
 
 		return err
 
+
+
 	}
+
+
 
 	if resp.IsError() {
 
+
+
 		return fmt.Errorf("upload failed: %s", resp.String())
+
+
 
 	}
 
+
+
 	return nil
+
+
 
 }
 

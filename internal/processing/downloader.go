@@ -39,11 +39,12 @@ func DownloadFromURL(url string) (string, string, error) {
 	)
 
 	var out bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr // Let user see progress
+	cmd.Stderr = &stderr // Capture stderr for error reporting
 
 	if err := cmd.Run(); err != nil {
-		return "", "", fmt.Errorf("yt-dlp failed: %w", err)
+		return "", "", fmt.Errorf("yt-dlp failed: %w\nStderr: %s", err, stderr.String())
 	}
 
 	// Parse output
