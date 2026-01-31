@@ -171,10 +171,16 @@ YotoCLI acts as a Model Context Protocol (MCP) server, allowing AI assistants (l
 *   **Control:** Play music, pause, stop, and set volume on your players.
 *   **Visuals:** Upload and set custom pixel-art icons.
 
-To set it up, run:
+To set it up via Stdio (Local):
 ```bash
 yoto mcp
 ```
+
+To set it up via SSE (Remote/Tailscale):
+```bash
+yoto mcp --transport sse --port 8080
+```
+Then configure Claude to point to `http://YOUR_TAILSCALE_IP:8080/sse`.
 
 For full configuration instructions and available tools, see the [MCP Server Guide](docs/MCP.md).
 

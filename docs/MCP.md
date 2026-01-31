@@ -9,13 +9,8 @@ This guide explains how to use the Yoto CLI as a Model Context Protocol (MCP) se
 
 ## Configuration for Claude Desktop
 
-To use Yoto with Claude Desktop, add the following to your `claude_desktop_config.json` file.
-
-**Location:**
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-**Configuration:**
+### Option 1: Local (Stdio)
+Use this if `yoto` is installed on the same computer as Claude.
 
 ```json
 {
@@ -27,7 +22,25 @@ To use Yoto with Claude Desktop, add the following to your `claude_desktop_confi
   }
 }
 ```
-*Replace `/absolute/path/to/yoto` with the actual path (e.g., `/usr/local/bin/yoto` or `/home/user/go/bin/yoto`).*
+
+### Option 2: Remote (SSE / Tailscale)
+Use this if `yoto` is running on a server (e.g., Homelab) and you want to access it from your laptop.
+
+**Server:**
+```bash
+yoto mcp --transport sse --port 8080
+```
+
+**Claude Config:**
+```json
+{
+  "mcpServers": {
+    "yoto-remote": {
+      "url": "http://<YOUR_SERVER_IP>:8080/sse"
+    }
+  }
+}
+```
 
 ## Available Tools
 

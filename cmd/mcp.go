@@ -4,12 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 	"github.com/vgaro/yotocli/internal/actions"
 	"github.com/vgaro/yotocli/pkg/yoto"
+)
+
+var (
+	mcpTransport string
+	mcpPort      int
+	mcpAddr      string
 )
 
 // --- Tool Definitions ---
@@ -439,15 +446,46 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "pause_player", Description: "Pause playback on a device"}, pausePlayerHandler)
 
 		// Start Server
-		// Using StdioTransport from the SDK
-		// Note: We need to make sure we use the correct Transport struct name.
-		// The example used &mcp.StdioTransport{}.
-		if err := s.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
-			log.Fatalf("Server failed: %v", err)
+		if mcpTransport == "sse" {
+			sse := &mcp.SSEServerTransport{
+				Endpoint: "/sse",
+			}
+			// Register handlers
+			// We need a mux to handle /sse and /messages
+			mux := http.NewServeMux()
+			mux.Handle("/sse", sse)
+			mux.Handle("/messages", sse)
+
+			server := &http.Server{
+				Addr:    fmt.Sprintf("%s:%d", mcpAddr, mcpPort),
+				Handler: mux,
+			}
+
+			fmt.Printf("Starting MCP SSE server on http://%s:%d/sse\n", mcpAddr, mcpPort)
+
+			// Start HTTP server in goroutine
+			go func() {
+				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					log.Fatalf("HTTP server failed: %v", err)
+				}
+			}()
+
+			// Run MCP server with SSE transport
+			if err := s.Run(context.Background(), sse); err != nil {
+				log.Fatalf("MCP Server failed: %v", err)
+			}
+		} else {
+			// Default Stdio
+			if err := s.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+				log.Fatalf("Server failed: %v", err)
+			}
 		}
 	},
 }
 
 func init() {
+	mcpCmd.Flags().StringVar(&mcpTransport, "transport", "stdio", "Transport type: stdio or sse")
+	mcpCmd.Flags().IntVar(&mcpPort, "port", 8080, "Port for SSE server")
+	mcpCmd.Flags().StringVar(&mcpAddr, "addr", "0.0.0.0", "Bind address for SSE server")
 	rootCmd.AddCommand(mcpCmd)
 }
