@@ -1,9 +1,9 @@
 ## yoto icon upload
 
-Upload a custom icon
+Upload a custom icon (local file or URL)
 
 ```
-yoto icon upload <file> [flags]
+yoto icon upload <file_or_url> [flags]
 ```
 
 ### Options
