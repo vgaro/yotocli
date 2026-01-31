@@ -71,6 +71,10 @@ Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a play
 Uploads a local audio file to a playlist.
 - **Input:** `file_path` (string), `playlist_name` (string), `no_normalize` (boolean, optional)
 
+### `set_track_icon`
+Sets the icon for a specific track in a playlist.
+- **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `icon_id` (string - e.g., "yoto:#HASH" or just the hash)
+
 ### `set_volume`
 Sets the volume of a Yoto player.
 - **Input:** `volume` (integer, 0-100), `device_id` (optional)

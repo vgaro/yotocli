@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
@@ -212,6 +213,54 @@ func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTra
 	return nil, SimpleOutput{Message: "Track added successfully"}, nil
 }
 
+// Set Track Icon
+type SetTrackIconInput struct {
+	PlaylistID string `json:"playlist_id" jsonschema:"The ID of the playlist"`
+	TrackIndex int    `json:"track_index" jsonschema:"The 1-based index of the track to update"`
+	IconID     string `json:"icon_id" jsonschema:"The Yoto Icon ID (e.g. yoto:#... or hash)"`
+}
+
+func setTrackIconHandler(ctx context.Context, req *mcp.CallToolRequest, input SetTrackIconInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	card, err := apiClient.GetCard(input.PlaylistID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	if card.Content == nil || input.TrackIndex < 1 || input.TrackIndex > len(card.Content.Chapters) {
+		return nil, SimpleOutput{}, fmt.Errorf("invalid track index")
+	}
+
+	// Update Icon
+	// Note: We need to format it as "yoto:#HASH" if it's not already, or just trust the input?
+	// The client library's `sanitizeCardForUpdate` handles the prefixing if it looks like a hash?
+	// Let's rely on the input being correct or `UpdateCard` fixing it.
+	// Actually, `pkg/yoto/client.go` `fixIcon` expects full URL or just hash?
+	// Let's assume input is the hash (ID) or full string.
+	// The other tracks show full URLs in `GetCard` response, but `UpdateCard` expects `yoto:#HASH`.
+	// If I pass the raw ID `Mnq...`, `fixIcon` might not touch it if it doesn't start with `http`.
+	// But `Display` struct has `Icon16x16`.
+	// Let's prepend `yoto:#` if it doesn't have it.
+	
+	iconVal := input.IconID
+	if !strings.HasPrefix(iconVal, "yoto:#") && !strings.HasPrefix(iconVal, "http") {
+		iconVal = "yoto:#" + iconVal
+	}
+
+	idx := input.TrackIndex - 1
+	card.Content.Chapters[idx].Display.Icon16x16 = iconVal
+	// Also update the tracks inside the chapter (usually 1:1)
+	for j := range card.Content.Chapters[idx].Tracks {
+		card.Content.Chapters[idx].Tracks[j].Display.Icon16x16 = iconVal
+	}
+
+	err = apiClient.UpdateCard(card.CardID, card)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	return nil, SimpleOutput{Message: "Icon updated successfully"}, nil
+}
+
 // Set Volume
 type SetVolumeInput struct {
 	Volume   int    `json:"volume" jsonschema:"Volume level (0-100)"`
@@ -335,6 +384,7 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)
