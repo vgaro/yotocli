@@ -29,6 +29,7 @@ Use this if `yoto` is running on a server (e.g., Homelab) and you want to access
 **Server (Docker - Recommended):**
 1.  Ensure `docker-compose.yml` is present.
 2.  Run: `docker-compose up -d`
+3.  Server will be available at `http://<YOUR_SERVER_IP>:8082/sse`
 
 **Server (Manual):**
 ```bash
@@ -40,7 +41,7 @@ yoto mcp --transport sse --port 8080
 {
   "mcpServers": {
     "yoto-remote": {
-      "url": "http://<YOUR_SERVER_IP>:8080/sse"
+      "url": "http://<YOUR_SERVER_IP>:8082/sse"
     }
   }
 }

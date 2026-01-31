@@ -447,14 +447,20 @@ var mcpCmd = &cobra.Command{
 
 		// Start Server
 		if mcpTransport == "sse" {
-			sse := &mcp.SSEServerTransport{
-				Endpoint: "/sse",
-			}
-			// Register handlers
-			// We need a mux to handle /sse and /messages
+			// Create SSE Handler
+			handler := mcp.NewSSEHandler(func(r *http.Request) *mcp.Server {
+				return s
+			}, &mcp.SSEOptions{})
+
 			mux := http.NewServeMux()
-			mux.Handle("/sse", sse)
-			mux.Handle("/messages", sse)
+			mux.Handle("/sse", handler)
+			// The handler manages its own message endpoints, we just need to route base requests
+			// But usually we need to mount it to a path.
+			
+			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+			})
 
 			server := &http.Server{
 				Addr:    fmt.Sprintf("%s:%d", mcpAddr, mcpPort),
@@ -462,17 +468,8 @@ var mcpCmd = &cobra.Command{
 			}
 
 			fmt.Printf("Starting MCP SSE server on http://%s:%d/sse\n", mcpAddr, mcpPort)
-
-			// Start HTTP server in goroutine
-			go func() {
-				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					log.Fatalf("HTTP server failed: %v", err)
-				}
-			}()
-
-			// Run MCP server with SSE transport
-			if err := s.Run(context.Background(), sse); err != nil {
-				log.Fatalf("MCP Server failed: %v", err)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("HTTP server failed: %v", err)
 			}
 		} else {
 			// Default Stdio
