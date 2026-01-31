@@ -192,6 +192,26 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 	return nil, SimpleOutput{Message: "Import successful"}, nil
 }
 
+// Add Track (Local File)
+type AddTrackInput struct {
+	FilePath     string `json:"file_path" jsonschema:"The path to the local audio file to upload"`
+	PlaylistName string `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
+	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+}
+
+func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	// Simple logger
+	logger := func(format string, args ...interface{}) {
+		// fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+
+	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, !input.NoNormalize, logger)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Track added successfully"}, nil
+}
+
 // Set Volume
 type SetVolumeInput struct {
 	Volume   int    `json:"volume" jsonschema:"Volume level (0-100)"`
@@ -314,6 +334,7 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)

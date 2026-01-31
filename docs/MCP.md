@@ -67,6 +67,10 @@ Updates the metadata of a playlist.
 Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
 - **Input:** `url` (string), `playlist_name` (optional - creates new if empty), `no_normalize` (boolean, optional)
 
+### `add_track`
+Uploads a local audio file to a playlist.
+- **Input:** `file_path` (string), `playlist_name` (string), `no_normalize` (boolean, optional)
+
 ### `set_volume`
 Sets the volume of a Yoto player.
 - **Input:** `volume` (integer, 0-100), `device_id` (optional)
