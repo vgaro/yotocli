@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/vgaro/yotocli/internal/actions"
 	"github.com/vgaro/yotocli/internal/utils"
-	"github.com/vgaro/yotocli/pkg/yoto"
 	"github.com/spf13/cobra"
 )
 
@@ -50,51 +50,13 @@ Fuzzy matching is supported for playlist and track names.`,
 			return err
 		}
 
-		if fullCard.Content == nil {
-			return fmt.Errorf("card has no content")
-		}
-
-		var newChapters []yoto.Chapter
-		var found bool
-		
-		// Try Index
-		idx, err := utils.ParseIndex(trackQuery)
-		
-		for i, chapter := range fullCard.Content.Chapters {
-			match := false
-			if err == nil && i+1 == idx {
-				match = true
-			} else if strings.Contains(strings.ToLower(chapter.Title), strings.ToLower(trackQuery)) {
-				match = true
-			}
-
-			if match {
-				fmt.Printf("Removing track: %s\n", chapter.Title)
-				found = true
-				continue
-			}
-			newChapters = append(newChapters, chapter)
-		}
-
-		if !found {
+		idx, _ := utils.FindChapter(fullCard, trackQuery)
+		if idx == -1 {
 			return fmt.Errorf("track not found: %s", trackQuery)
 		}
 
-		fullCard.Content.Chapters = newChapters
-		// Recalculate duration/size if needed (API might do it automatically, but let's be safe)
-		var totalDur, totalSize int
-		for _, c := range newChapters {
-			totalDur += c.Duration
-			if len(c.Tracks) > 0 {
-				totalSize += c.Tracks[0].FileSize
-			}
-		}
-		if fullCard.Metadata != nil {
-			fullCard.Metadata.Media.Duration = totalDur
-			fullCard.Metadata.Media.FileSize = totalSize
-		}
-
-		return apiClient.UpdateCard(card.CardID, fullCard)
+		fmt.Printf("Removing track: %s\n", fullCard.Content.Chapters[idx].Title)
+		return actions.RemoveTrack(apiClient, card.CardID, idx+1)
 	},
 }
 

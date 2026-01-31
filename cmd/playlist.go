@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+	"github.com/vgaro/yotocli/internal/actions"
 	"github.com/vgaro/yotocli/internal/utils"
 	"github.com/vgaro/yotocli/pkg/yoto"
-	"github.com/spf13/cobra"
 )
 
 // mvupCmd represents the mvup command
@@ -50,15 +51,8 @@ func moveRelative(query string, delta int) error {
 	}
 
 	newIdx := idx + delta
-	if newIdx < 0 || newIdx >= len(fullCard.Content.Chapters) {
-		return fmt.Errorf("cannot move track further")
-	}
-
-	// Swap
-	fullCard.Content.Chapters[idx], fullCard.Content.Chapters[newIdx] = fullCard.Content.Chapters[newIdx], fullCard.Content.Chapters[idx]
-	utils.ReorderPlaylist(fullCard)
-
-	return apiClient.UpdateCard(card.CardID, fullCard)
+	// actions.MoveTrack uses 1-based index
+	return actions.MoveTrack(apiClient, card.CardID, idx+1, newIdx+1)
 }
 
 // mvCmd represents the mv command

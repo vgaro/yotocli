@@ -385,49 +385,10 @@ type RemoveTrackInput struct {
 }
 
 func removeTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input RemoveTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	card, err := apiClient.GetCard(input.PlaylistID)
+	err := actions.RemoveTrack(apiClient, input.PlaylistID, input.TrackIndex)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
-
-	if card.Content == nil || input.TrackIndex < 1 || input.TrackIndex > len(card.Content.Chapters) {
-		return nil, SimpleOutput{}, fmt.Errorf("invalid track index")
-	}
-
-	idx := input.TrackIndex - 1
-	// Remove from slice
-	card.Content.Chapters = append(card.Content.Chapters[:idx], card.Content.Chapters[idx+1:]...)
-
-	// Reorder keys
-	for i := range card.Content.Chapters {
-		key := fmt.Sprintf("%02d", i+1)
-		card.Content.Chapters[i].Key = key
-		card.Content.Chapters[i].OverlayLabel = fmt.Sprintf("%d", i+1)
-		for j := range card.Content.Chapters[i].Tracks {
-			card.Content.Chapters[i].Tracks[j].Key = key
-			card.Content.Chapters[i].Tracks[j].OverlayLabel = fmt.Sprintf("%d", i+1)
-		}
-	}
-
-	// Stats update (simplified)
-	var totalDur, totalSize int
-	for _, c := range card.Content.Chapters {
-		totalDur += c.Duration
-		if len(c.Tracks) > 0 {
-			totalSize += c.Tracks[0].FileSize
-		}
-	}
-	if card.Metadata == nil {
-		card.Metadata = &yoto.Metadata{}
-	}
-	card.Metadata.Media.Duration = totalDur
-	card.Metadata.Media.FileSize = totalSize
-
-	err = apiClient.UpdateCard(card.CardID, card)
-	if err != nil {
-		return nil, SimpleOutput{}, err
-	}
-
 	return nil, SimpleOutput{Message: "Track removed successfully"}, nil
 }
 
@@ -439,52 +400,10 @@ type MoveTrackInput struct {
 }
 
 func moveTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input MoveTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	card, err := apiClient.GetCard(input.PlaylistID)
+	err := actions.MoveTrack(apiClient, input.PlaylistID, input.TrackIndex, input.NewPosition)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
-
-	count := len(card.Content.Chapters)
-	if card.Content == nil || input.TrackIndex < 1 || input.TrackIndex > count {
-		return nil, SimpleOutput{}, fmt.Errorf("invalid track index")
-	}
-	if input.NewPosition < 1 || input.NewPosition > count {
-		return nil, SimpleOutput{}, fmt.Errorf("invalid new position")
-	}
-
-	srcIdx := input.TrackIndex - 1
-	destIdx := input.NewPosition - 1
-
-	if srcIdx == destIdx {
-		return nil, SimpleOutput{Message: "No move needed"}, nil
-	}
-
-	elem := card.Content.Chapters[srcIdx]
-	// Remove
-	card.Content.Chapters = append(card.Content.Chapters[:srcIdx], card.Content.Chapters[srcIdx+1:]...)
-	// Insert
-	if destIdx >= len(card.Content.Chapters) {
-		card.Content.Chapters = append(card.Content.Chapters, elem)
-	} else {
-		card.Content.Chapters = append(card.Content.Chapters[:destIdx], append([]yoto.Chapter{elem}, card.Content.Chapters[destIdx:]...)...)
-	}
-
-	// Reorder keys
-	for i := range card.Content.Chapters {
-		key := fmt.Sprintf("%02d", i+1)
-		card.Content.Chapters[i].Key = key
-		card.Content.Chapters[i].OverlayLabel = fmt.Sprintf("%d", i+1)
-		for j := range card.Content.Chapters[i].Tracks {
-			card.Content.Chapters[i].Tracks[j].Key = key
-			card.Content.Chapters[i].Tracks[j].OverlayLabel = fmt.Sprintf("%d", i+1)
-		}
-	}
-
-	err = apiClient.UpdateCard(card.CardID, card)
-	if err != nil {
-		return nil, SimpleOutput{}, err
-	}
-
 	return nil, SimpleOutput{Message: fmt.Sprintf("Track moved to position %d", input.NewPosition)}, nil
 }
 
