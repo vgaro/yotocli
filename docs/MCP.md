@@ -65,11 +65,11 @@ Updates the metadata of a playlist.
 
 ### `import_from_url`
 Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
-- **Input:** `url` (string), `playlist_name` (optional - creates new if empty), `no_normalize` (boolean, optional)
+- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional)
 
 ### `add_track`
 Uploads a local audio file to a playlist.
-- **Input:** `file_path` (string), `playlist_name` (string), `no_normalize` (boolean, optional)
+- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `no_normalize` (boolean, optional)
 
 ### `set_track_icon`
 Sets the icon for a specific track in a playlist.
@@ -102,6 +102,28 @@ Stops playback on a device.
 ### `pause_player`
 Pauses playback on a device.
 - **Input:** `device_id` (optional)
+
+## Common Workflows
+
+### Creating a Custom Card
+1.  **Create:** `create_playlist(title="My Story", author="Me")`
+2.  **Add Content:**
+    *   From YouTube: `import_from_url(url="...", playlist_name="My Story")`
+    *   From Local File: `add_track(file_path="/tmp/story.mp3", playlist_name="My Story")`
+3.  **Add Icon:**
+    *   Upload: `id = upload_icon(file_path="https://.../icon.png")`
+    *   Set: `set_track_icon(playlist_id=..., track_index=1, icon_id=id)`
+
+### Managing Playback
+1.  **Check Status:** `get_device_status()` to see what's playing.
+2.  **Control:** `play_card()`, `pause_player()`, `set_volume()`.
+
+## Troubleshooting
+
+-   **"Unauthorized" Error:** The access token has expired and the server hasn't refreshed it yet, or the configuration is stale.
+    *   **Fix:** Run `yoto ls` in your terminal to force a refresh, then **restart the MCP server** (e.g., restart Claude Desktop).
+-   **"Track not found" / "Invalid index":** Remember that `track_index` is 1-based (matches the Yoto app UI), not 0-based.
+-   **"yt-dlp not found":** The `import_from_url` tool requires `yt-dlp` to be installed on the host system.
 
 ## Example Prompts
 
