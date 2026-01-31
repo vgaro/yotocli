@@ -79,6 +79,14 @@ Sets the icon for a specific track in a playlist.
 Uploads a custom icon (PNG/GIF) to your library. Returns the Icon ID.
 - **Input:** `file_path` (string - local path or URL)
 
+### `remove_track`
+Removes a specific track from a playlist.
+- **Input:** `playlist_id` (string), `track_index` (integer, 1-based)
+
+### `move_track`
+Reorders a track within a playlist.
+- **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `new_position` (integer, 1-based)
+
 ### `set_volume`
 Sets the volume of a Yoto player.
 - **Input:** `volume` (integer, 0-100), `device_id` (optional)

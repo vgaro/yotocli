@@ -378,6 +378,116 @@ func pausePlayerHandler(ctx context.Context, req *mcp.CallToolRequest, input Pla
 	return nil, SimpleOutput{Message: "Playback paused"}, nil
 }
 
+// Remove Track
+type RemoveTrackInput struct {
+	PlaylistID string `json:"playlist_id" jsonschema:"The ID of the playlist"`
+	TrackIndex int    `json:"track_index" jsonschema:"The 1-based index of the track to remove"`
+}
+
+func removeTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input RemoveTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	card, err := apiClient.GetCard(input.PlaylistID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	if card.Content == nil || input.TrackIndex < 1 || input.TrackIndex > len(card.Content.Chapters) {
+		return nil, SimpleOutput{}, fmt.Errorf("invalid track index")
+	}
+
+	idx := input.TrackIndex - 1
+	// Remove from slice
+	card.Content.Chapters = append(card.Content.Chapters[:idx], card.Content.Chapters[idx+1:]...)
+
+	// Reorder keys
+	for i := range card.Content.Chapters {
+		key := fmt.Sprintf("%02d", i+1)
+		card.Content.Chapters[i].Key = key
+		card.Content.Chapters[i].OverlayLabel = fmt.Sprintf("%d", i+1)
+		for j := range card.Content.Chapters[i].Tracks {
+			card.Content.Chapters[i].Tracks[j].Key = key
+			card.Content.Chapters[i].Tracks[j].OverlayLabel = fmt.Sprintf("%d", i+1)
+		}
+	}
+
+	// Stats update (simplified)
+	var totalDur, totalSize int
+	for _, c := range card.Content.Chapters {
+		totalDur += c.Duration
+		if len(c.Tracks) > 0 {
+			totalSize += c.Tracks[0].FileSize
+		}
+	}
+	if card.Metadata == nil {
+		card.Metadata = &yoto.Metadata{}
+	}
+	card.Metadata.Media.Duration = totalDur
+	card.Metadata.Media.FileSize = totalSize
+
+	err = apiClient.UpdateCard(card.CardID, card)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	return nil, SimpleOutput{Message: "Track removed successfully"}, nil
+}
+
+// Move Track (Reorder)
+type MoveTrackInput struct {
+	PlaylistID  string `json:"playlist_id" jsonschema:"The ID of the playlist"`
+	TrackIndex  int    `json:"track_index" jsonschema:"The 1-based index of the track to move"`
+	NewPosition int    `json:"new_position" jsonschema:"The new 1-based index position for the track"`
+}
+
+func moveTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input MoveTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	card, err := apiClient.GetCard(input.PlaylistID)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	count := len(card.Content.Chapters)
+	if card.Content == nil || input.TrackIndex < 1 || input.TrackIndex > count {
+		return nil, SimpleOutput{}, fmt.Errorf("invalid track index")
+	}
+	if input.NewPosition < 1 || input.NewPosition > count {
+		return nil, SimpleOutput{}, fmt.Errorf("invalid new position")
+	}
+
+	srcIdx := input.TrackIndex - 1
+	destIdx := input.NewPosition - 1
+
+	if srcIdx == destIdx {
+		return nil, SimpleOutput{Message: "No move needed"}, nil
+	}
+
+	elem := card.Content.Chapters[srcIdx]
+	// Remove
+	card.Content.Chapters = append(card.Content.Chapters[:srcIdx], card.Content.Chapters[srcIdx+1:]...)
+	// Insert
+	if destIdx >= len(card.Content.Chapters) {
+		card.Content.Chapters = append(card.Content.Chapters, elem)
+	} else {
+		card.Content.Chapters = append(card.Content.Chapters[:destIdx], append([]yoto.Chapter{elem}, card.Content.Chapters[destIdx:]...)...)
+	}
+
+	// Reorder keys
+	for i := range card.Content.Chapters {
+		key := fmt.Sprintf("%02d", i+1)
+		card.Content.Chapters[i].Key = key
+		card.Content.Chapters[i].OverlayLabel = fmt.Sprintf("%d", i+1)
+		for j := range card.Content.Chapters[i].Tracks {
+			card.Content.Chapters[i].Tracks[j].Key = key
+			card.Content.Chapters[i].Tracks[j].OverlayLabel = fmt.Sprintf("%d", i+1)
+		}
+	}
+
+	err = apiClient.UpdateCard(card.CardID, card)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+
+	return nil, SimpleOutput{Message: fmt.Sprintf("Track moved to position %d", input.NewPosition)}, nil
+}
+
 // mcpCmd represents the mcp command
 var mcpCmd = &cobra.Command{
 	Use:    "mcp",
@@ -402,6 +512,8 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "upload_icon", Description: "Upload a custom icon"}, uploadIconHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "remove_track", Description: "Remove a track from a playlist"}, removeTrackHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "move_track", Description: "Reorder a track within a playlist"}, moveTrackHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)
