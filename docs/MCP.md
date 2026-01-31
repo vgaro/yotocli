@@ -77,7 +77,7 @@ Sets the icon for a specific track in a playlist.
 
 ### `upload_icon`
 Uploads a custom icon (PNG/GIF) to your library. Returns the Icon ID.
-- **Input:** `file_path` (string)
+- **Input:** `file_path` (string - local path or URL)
 
 ### `set_volume`
 Sets the volume of a Yoto player.

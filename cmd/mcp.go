@@ -263,11 +263,11 @@ func setTrackIconHandler(ctx context.Context, req *mcp.CallToolRequest, input Se
 
 // Upload Icon
 type UploadIconInput struct {
-	FilePath string `json:"file_path" jsonschema:"Path to the icon file (PNG/GIF)"`
+	FilePath string `json:"file_path" jsonschema:"Path to the icon file (local path or URL)"`
 }
 
 func uploadIconHandler(ctx context.Context, req *mcp.CallToolRequest, input UploadIconInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	id, err := apiClient.UploadIcon(input.FilePath)
+	id, err := actions.UploadIcon(apiClient, input.FilePath)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}

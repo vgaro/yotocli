@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/vgaro/yotocli/internal/actions"
 )
 
 var iconCmd = &cobra.Command{
@@ -12,14 +13,14 @@ var iconCmd = &cobra.Command{
 }
 
 var uploadIconCmd = &cobra.Command{
-	Use:   "upload <file>",
-	Short: "Upload a custom icon",
+	Use:   "upload <file_or_url>",
+	Short: "Upload a custom icon (local file or URL)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path := args[0]
-		fmt.Printf("Uploading icon %s...\n", path)
+		source := args[0]
+		fmt.Printf("Uploading icon from %s...\n", source)
 		
-		id, err := apiClient.UploadIcon(path)
+		id, err := actions.UploadIcon(apiClient, source)
 		if err != nil {
 			return err
 		}
