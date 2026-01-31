@@ -26,7 +26,11 @@ Use this if `yoto` is installed on the same computer as Claude.
 ### Option 2: Remote (SSE / Tailscale)
 Use this if `yoto` is running on a server (e.g., Homelab) and you want to access it from your laptop.
 
-**Server:**
+**Server (Docker - Recommended):**
+1.  Ensure `docker-compose.yml` is present.
+2.  Run: `docker-compose up -d`
+
+**Server (Manual):**
 ```bash
 yoto mcp --transport sse --port 8080
 ```
