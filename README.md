@@ -162,6 +162,22 @@ auth:
   client_id: "YOUR_CLIENT_ID"
 ```
 
+## 🤖 AI Agent Integration (MCP)
+
+YotoCLI acts as a Model Context Protocol (MCP) server, allowing AI assistants (like Claude Desktop) to directly manage your library and control your devices.
+
+**Capabilities:**
+*   **Create & Manage:** Create playlists, import from YouTube, upload local files.
+*   **Control:** Play music, pause, stop, and set volume on your players.
+*   **Visuals:** Upload and set custom pixel-art icons.
+
+To set it up, run:
+```bash
+yoto mcp
+```
+
+For full configuration instructions and available tools, see the [MCP Server Guide](docs/MCP.md).
+
 ## Troubleshooting
 - **Normalization Failed:** Ensure `ffmpeg` is installed and in your PATH.
 - **Authentication:** If commands fail with 401/403, run `yoto login` again.
