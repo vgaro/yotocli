@@ -261,6 +261,22 @@ func setTrackIconHandler(ctx context.Context, req *mcp.CallToolRequest, input Se
 	return nil, SimpleOutput{Message: "Icon updated successfully"}, nil
 }
 
+// Upload Icon
+type UploadIconInput struct {
+	FilePath string `json:"file_path" jsonschema:"Path to the icon file (PNG/GIF)"`
+}
+
+func uploadIconHandler(ctx context.Context, req *mcp.CallToolRequest, input UploadIconInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	id, err := apiClient.UploadIcon(input.FilePath)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	// Return the ID in the message or as structured data? 
+	// SimpleOutput only has Message.
+	// Let's put it in the message.
+	return nil, SimpleOutput{Message: fmt.Sprintf("Icon uploaded. ID: %s", id)}, nil
+}
+
 // Set Volume
 type SetVolumeInput struct {
 	Volume   int    `json:"volume" jsonschema:"Volume level (0-100)"`
@@ -385,6 +401,7 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "upload_icon", Description: "Upload a custom icon"}, uploadIconHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)

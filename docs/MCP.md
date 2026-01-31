@@ -75,6 +75,10 @@ Uploads a local audio file to a playlist.
 Sets the icon for a specific track in a playlist.
 - **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `icon_id` (string - e.g., "yoto:#HASH" or just the hash)
 
+### `upload_icon`
+Uploads a custom icon (PNG/GIF) to your library. Returns the Icon ID.
+- **Input:** `file_path` (string)
+
 ### `set_volume`
 Sets the volume of a Yoto player.
 - **Input:** `volume` (integer, 0-100), `device_id` (optional)

@@ -125,13 +125,31 @@ func (c *Client) DeleteCard(id string) error {
 		if resp.IsError() {
 			return fmt.Errorf("api error: %s", resp.String())
 		}
-		return nil
-	}
+			return nil
+		}
 		
+		func (c *Client) UploadIcon(path string) (string, error) {
+			var result struct {
+				ID string `json:"id"`
+			}
 		
-
-func (c *Client) UpdateCard(id string, card *Card) error {
-	// Sanitize icons: Convert https URLs back to yoto:#hash format
+			resp, err := c.http.R().
+				SetFile("file", path).
+				SetFormData(map[string]string{"autoConvert": "true"}).
+				SetResult(&result).
+				Post("/media/displayIcons/user/me/upload")
+		
+			if err != nil {
+				return "", err
+			}
+			if resp.IsError() {
+				return "", fmt.Errorf("api error: %s", resp.String())
+			}
+		
+			return result.ID, nil
+		}
+		
+		func (c *Client) UpdateCard(id string, card *Card) error {	// Sanitize icons: Convert https URLs back to yoto:#hash format
 	sanitizeCardForUpdate(card)
 
 	// The API for content update seems to use the same endpoint as create (Upsert)

@@ -21,6 +21,7 @@ It allows for uploading files, creating playlists, and managing device state dir
 * [yoto create](yoto_create.md)	 - Create a new playlist from a directory of audio files
 * [yoto download](yoto_download.md)	 - Download tracks from your library
 * [yoto edit](yoto_edit.md)	 - Edit properties of a playlist or track
+* [yoto icon](yoto_icon.md)	 - Manage icons
 * [yoto import](yoto_import.md)	 - Download audio from a URL and add it to a playlist
 * [yoto login](yoto_login.md)	 - Authenticate with Yoto
 * [yoto ls](yoto_ls.md)	 - List playlists or tracks
