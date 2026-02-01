@@ -34,19 +34,35 @@ It allows for uploading files, creating playlists, and managing device state dir
 		if token != "" {
 			_, err := apiClient.ListDevices()
 			if err != nil && (strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "401")) {
-				// fmt.Println("Token expired, attempting refresh...")
+				fmt.Println("Access token expired. Attempting refresh...")
 				refreshToken := config.GetRefreshToken()
-				if refreshToken != "" {
-					newTokens, refreshErr := apiClient.RefreshToken(refreshToken)
-					if refreshErr == nil {
-						config.SetToken(newTokens.AccessToken, newTokens.RefreshToken)
-						if err := config.Save(); err == nil {
-							// Re-init client with new token
-							apiClient = yoto.NewClient(newTokens.AccessToken, clientID)
-							// fmt.Println("Token refreshed.")
-						}
-					}
+				if refreshToken == "" {
+					return fmt.Errorf("authentication expired and no refresh token found. Please run 'yoto login'")
 				}
+
+				newTokens, refreshErr := apiClient.RefreshToken(refreshToken)
+				if refreshErr != nil {
+					return fmt.Errorf("failed to refresh token: %v. Please run 'yoto login'", refreshErr)
+				}
+
+				config.SetToken(newTokens.AccessToken, newTokens.RefreshToken)
+				if err := config.Save(); err != nil {
+					return fmt.Errorf("failed to save new tokens: %w", err)
+				}
+
+				// Re-init client with new token
+				apiClient = yoto.NewClient(newTokens.AccessToken, clientID)
+				fmt.Println("Token successfully refreshed.")
+			}
+		} else {
+			// No token at all? Only allow login/help commands ideally, but for now just warn
+			// Actually, commands like 'mcp' SHOULD fail if no token.
+			// But 'login' command itself needs to run without token.
+			// Cobra doesn't easily let us skip PersistentPreRunE for specific subcommands cleanly without checking cmd.Name()
+			if cmd.Name() != "login" && cmd.Name() != "help" && cmd.Name() != "completion" && !strings.HasPrefix(cmd.Use, "gen-docs") {
+				// We return nil here to let the command logic handle "unauthorized" if it wants, 
+				// but for MCP we really want to fail fast.
+				// Let's rely on the commands failing later if they need auth.
 			}
 		}
 
