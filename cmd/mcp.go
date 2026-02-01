@@ -61,9 +61,6 @@ var mcpCmd = &cobra.Command{
 
 			mux := http.NewServeMux()
 			mux.Handle("/sse", handler)
-			// The handler manages its own message endpoints, we just need to route base requests
-			// But usually we need to mount it to a path.
-			
 			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte("OK"))
