@@ -51,8 +51,8 @@ func moveRelative(query string, delta int) error {
 	}
 
 	newIdx := idx + delta
-	// actions.MoveTrack uses 1-based index
-	return actions.MoveTrack(apiClient, card.CardID, idx+1, newIdx+1)
+	// actions.MoveTrack uses 1-based index. Destination is same card.
+	return actions.MoveTrack(apiClient, card.CardID, idx+1, "", newIdx+1)
 }
 
 // mvCmd represents the mv command

@@ -102,8 +102,12 @@ Removes a specific track from a playlist.
 - **Input:** `playlist_id` (string), `track_index` (integer, 1-based)
 
 ### `move_track`
-Reorders a track within a playlist.
-- **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `new_position` (integer, 1-based)
+Reorders a track within a playlist or moves it to another.
+- **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `new_position` (integer, 1-based), `dest_playlist_id` (optional)
+
+### `copy_track`
+Copies a track to another playlist.
+- **Input:** `playlist_id` (string), `track_index` (integer, 1-based), `dest_playlist_id` (optional), `new_position` (integer, 1-based)
 
 ### `set_volume`
 Sets the volume of a Yoto player.

@@ -378,17 +378,40 @@ func removeTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input Rem
 	return nil, SimpleOutput{Message: "Track removed successfully"}, nil
 }
 
-// Move Track (Reorder)
+// Move Track (Reorder or Move between playlists)
 type MoveTrackInput struct {
-	PlaylistID  string `json:"playlist_id" jsonschema:"The ID of the playlist"`
-	TrackIndex  int    `json:"track_index" jsonschema:"The 1-based index of the track to move"`
-	NewPosition int    `json:"new_position" jsonschema:"The new 1-based index position for the track"`
+	PlaylistID     string `json:"playlist_id" jsonschema:"The ID of the source playlist"`
+	TrackIndex     int    `json:"track_index" jsonschema:"The 1-based index of the track to move"`
+	NewPosition    int    `json:"new_position" jsonschema:"The new 1-based index position in the destination"`
+	DestPlaylistID string `json:"dest_playlist_id,omitempty" jsonschema:"The ID of the destination playlist (optional, defaults to source)"`
 }
 
 func moveTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input MoveTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	err := actions.MoveTrack(apiClient, input.PlaylistID, input.TrackIndex, input.NewPosition)
+	err := actions.MoveTrack(apiClient, input.PlaylistID, input.TrackIndex, input.DestPlaylistID, input.NewPosition)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
-	return nil, SimpleOutput{Message: fmt.Sprintf("Track moved to position %d", input.NewPosition)}, nil
+	dest := "destination"
+	if input.DestPlaylistID != "" && input.DestPlaylistID != input.PlaylistID {
+		dest = input.DestPlaylistID
+	} else {
+		dest = "position"
+	}
+	return nil, SimpleOutput{Message: fmt.Sprintf("Track moved to %s %d", dest, input.NewPosition)}, nil
+}
+
+// Copy Track
+type CopyTrackInput struct {
+	PlaylistID     string `json:"playlist_id" jsonschema:"The ID of the source playlist"`
+	TrackIndex     int    `json:"track_index" jsonschema:"The 1-based index of the track to copy"`
+	DestPlaylistID string `json:"dest_playlist_id" jsonschema:"The ID of the destination playlist (optional, defaults to source/duplicate)"`
+	NewPosition    int    `json:"new_position" jsonschema:"The 1-based index position in the destination"`
+}
+
+func copyTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input CopyTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
+	err := actions.CopyTrack(apiClient, input.PlaylistID, input.TrackIndex, input.DestPlaylistID, input.NewPosition)
+	if err != nil {
+		return nil, SimpleOutput{}, err
+	}
+	return nil, SimpleOutput{Message: "Track copied successfully"}, nil
 }
