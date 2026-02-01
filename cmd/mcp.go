@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,11 +27,18 @@ var mcpCmd = &cobra.Command{
 	Short:  "Start the MCP server for Yoto",
 	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Logger
+		logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+
 		// Create MCP Server
 		s := mcp.NewServer(&mcp.Implementation{
 			Name:    "yoto-mcp",
 			Version: "1.0.0",
-		}, nil)
+		}, &mcp.ServerOptions{
+			Logger: logger,
+		})
 
 		// Register Tools
 		mcp.AddTool(s, &mcp.Tool{Name: "list_playlists", Description: "List all Yoto cards/playlists in the library"}, listPlaylistsHandler)
