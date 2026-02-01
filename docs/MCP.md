@@ -87,7 +87,7 @@ Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a play
 
 ### `add_track`
 Uploads a local audio file to a playlist.
-- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `no_normalize` (boolean, optional)
+- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `icon_id` (string, optional), `no_normalize` (boolean, optional)
 
 ### `set_track_icon`
 Sets the icon for a specific track in a playlist.

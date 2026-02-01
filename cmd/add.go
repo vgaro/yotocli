@@ -9,6 +9,7 @@ import (
 
 var (
 	addNoNormalize bool
+	addIcon        string
 )
 
 var addCmd = &cobra.Command{
@@ -30,7 +31,7 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 		playlistArg := args[0]
 		filePath := args[1]
 
-		return actions.AddTrack(apiClient, playlistArg, filePath, !addNoNormalize, func(format string, args ...interface{}) {
+		return actions.AddTrack(apiClient, playlistArg, filePath, addIcon, !addNoNormalize, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},
@@ -38,5 +39,6 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 
 func init() {
 	addCmd.Flags().BoolVar(&addNoNormalize, "no-normalize", false, "Disable audio normalization")
+	addCmd.Flags().StringVar(&addIcon, "icon", "", "Icon ID (hash or yoto:#...) to use for the track")
 	rootCmd.AddCommand(addCmd)
 }

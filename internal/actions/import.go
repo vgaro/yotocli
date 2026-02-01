@@ -30,5 +30,5 @@ func ImportFromURL(client *yoto.Client, url string, playlistName string, normali
 	}
 
 	// AddTrack handles normalization, finding/creating playlist, upload, and update
-	return AddTrack(client, targetPlaylist, filePath, normalize, log)
+	return AddTrack(client, targetPlaylist, filePath, "", normalize, log)
 }

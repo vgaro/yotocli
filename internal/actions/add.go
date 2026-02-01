@@ -14,7 +14,7 @@ import (
 // AddTrack uploads a local file and adds it to a playlist.
 // playlistQuery can be "Name" or "Name/Position".
 // If playlist doesn't exist, it creates it.
-func AddTrack(client *yoto.Client, playlistQuery string, filePath string, normalize bool, log Logger) error {
+func AddTrack(client *yoto.Client, playlistQuery string, filePath string, iconID string, normalize bool, log Logger) error {
 	if log == nil {
 		log = func(s string, i ...interface{}) {}
 	}
@@ -82,6 +82,14 @@ func AddTrack(client *yoto.Client, playlistQuery string, filePath string, normal
 	// Use filename as title if not provided
 	title := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
 
+	// Determine icon
+	iconVal := iconID
+	if iconVal == "" {
+		iconVal = "yoto:#aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q" // Default standard icon
+	} else if !strings.HasPrefix(iconVal, "yoto:#") && !strings.HasPrefix(iconVal, "http") {
+		iconVal = "yoto:#" + iconVal
+	}
+
 	newTrack := yoto.Track{
 		Title:        title,
 		TrackURL:     fmt.Sprintf("yoto:#%s", transData.TranscodedSha256),
@@ -91,7 +99,7 @@ func AddTrack(client *yoto.Client, playlistQuery string, filePath string, normal
 		OverlayLabel: "1", // Placeholder
 		Type:         "audio",
 		Display: yoto.Display{
-			Icon16x16: "yoto:#aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q",
+			Icon16x16: iconVal,
 		},
 	}
 
