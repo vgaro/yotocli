@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -177,11 +178,9 @@ type ImportFromURLInput struct {
 }
 
 func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input ImportFromURLInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	// Logger that writes to stderr so MCP client doesn't see it as response, or just ignore.
-	// For MCP, we usually want to be silent or return progress via notifications (complex).
-	// Let's just log to stderr for server ops debugging.
+	// Logger that writes to stderr so MCP client doesn't see it as response
 	logger := func(format string, args ...interface{}) {
-		// fmt.Fprintf(os.Stderr, format+"\n", args...)
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
 	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, !input.NoNormalize, logger)
@@ -202,7 +201,7 @@ type AddTrackInput struct {
 func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
 	// Simple logger
 	logger := func(format string, args ...interface{}) {
-		// fmt.Fprintf(os.Stderr, format+"\n", args...)
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
 	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.IconID, !input.NoNormalize, logger)

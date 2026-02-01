@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vgaro/yotocli/internal/actions"
 	"github.com/vgaro/yotocli/internal/utils"
-	"github.com/vgaro/yotocli/pkg/yoto"
 )
 
 // mvupCmd represents the mvup command
@@ -76,7 +75,17 @@ var mvCmd = &cobra.Command{
 		if srcCardRef == nil {
 			return fmt.Errorf("source card not found")
 		}
-		srcCard, _ := apiClient.GetCard(srcCardRef.CardID)
+		
+		// We need to fetch the full card just to find the index if it's a name?
+		// utils.FindChapter takes full card.
+		// Let's reuse utils logic or just call GetCard if needed.
+		// Wait, actions.MoveTrack takes indices.
+		// We need to resolve names to indices here in CLI layer.
+		
+		srcCard, err := apiClient.GetCard(srcCardRef.CardID)
+		if err != nil {
+			return err
+		}
 		srcIdx, _ := utils.FindChapter(srcCard, srcParts[1])
 		if srcIdx == -1 {
 			return fmt.Errorf("source track not found")
@@ -85,59 +94,29 @@ var mvCmd = &cobra.Command{
 		destParts := strings.Split(args[1], "/")
 		destCardRef := utils.FindCard(cards, destParts[0])
 
-		// If destination card is not found, maybe args[1] is just a position in same card
+		var destCardID string
+		var destPos int
+
 		if destCardRef == nil {
-			// Try move within same card
+			// Destination is likely just a position in the same card
 			newPos, err := utils.ParseIndex(args[1])
 			if err != nil {
 				return fmt.Errorf("destination card or position not found: %s", args[1])
 			}
-			newIdx := newPos - 1
-			if newIdx < 0 || newIdx >= len(srcCard.Content.Chapters) {
-				return fmt.Errorf("invalid position")
-			}
-
-			// Perform move within same card
-			elem := srcCard.Content.Chapters[srcIdx]
-			srcCard.Content.Chapters = append(srcCard.Content.Chapters[:srcIdx], srcCard.Content.Chapters[srcIdx+1:]...)
-			// Insert
-			srcCard.Content.Chapters = append(srcCard.Content.Chapters[:newIdx], append([]yoto.Chapter{elem}, srcCard.Content.Chapters[newIdx:]...)...)
-
-			utils.ReorderPlaylist(srcCard)
-			return apiClient.UpdateCard(srcCard.CardID, srcCard)
-		}
-
-		// Move between cards
-		destCard, _ := apiClient.GetCard(destCardRef.CardID)
-		destPos := len(destCard.Content.Chapters) // default append
-		if len(destParts) > 1 {
-			if p, err := utils.ParseIndex(destParts[1]); err == nil {
-				destPos = p - 1
-			}
-		}
-
-		// Remove from src
-		elem := srcCard.Content.Chapters[srcIdx]
-		srcCard.Content.Chapters = append(srcCard.Content.Chapters[:srcIdx], srcCard.Content.Chapters[srcIdx+1:]...)
-
-		// Add to dest
-		if destCard.Content == nil {
-			destCard.Content = &yoto.Content{}
-		}
-		if destPos >= len(destCard.Content.Chapters) {
-			destCard.Content.Chapters = append(destCard.Content.Chapters, elem)
+			destCardID = srcCard.CardID
+			destPos = newPos // 1-based
 		} else {
-			destCard.Content.Chapters = append(destCard.Content.Chapters[:destPos], append([]yoto.Chapter{elem}, destCard.Content.Chapters[destPos:]...)...)
+			destCardID = destCardRef.CardID
+			destPos = -1 // append
+			if len(destParts) > 1 {
+				if p, err := utils.ParseIndex(destParts[1]); err == nil {
+					destPos = p
+				}
+			}
 		}
 
-		utils.ReorderPlaylist(srcCard)
-		utils.ReorderPlaylist(destCard)
-
-		// Update both (In Go we should probably do this concurrently or handle failure)
-		if err := apiClient.UpdateCard(srcCard.CardID, srcCard); err != nil {
-			return err
-		}
-		return apiClient.UpdateCard(destCard.CardID, destCard)
+		fmt.Printf("Moving track %d from '%s' to '%s' position %d...\n", srcIdx+1, srcCard.Title, destCardID, destPos)
+		return actions.MoveTrack(apiClient, srcCard.CardID, srcIdx+1, destCardID, destPos)
 	},
 }
 
@@ -170,29 +149,15 @@ var cpCmd = &cobra.Command{
 			return fmt.Errorf("destination card not found: %s", destParts[0])
 		}
 
-		destCard, _ := apiClient.GetCard(destCardRef.CardID)
-		destPos := len(destCard.Content.Chapters) // default append
+		destPos := -1 // append
 		if len(destParts) > 1 {
 			if p, err := utils.ParseIndex(destParts[1]); err == nil {
-				destPos = p - 1
+				destPos = p
 			}
 		}
 
-		// Copy elem
-		elem := srcCard.Content.Chapters[srcIdx]
-
-		// Add to dest
-		if destCard.Content == nil {
-			destCard.Content = &yoto.Content{}
-		}
-		if destPos >= len(destCard.Content.Chapters) {
-			destCard.Content.Chapters = append(destCard.Content.Chapters, elem)
-		} else {
-			destCard.Content.Chapters = append(destCard.Content.Chapters[:destPos], append([]yoto.Chapter{elem}, destCard.Content.Chapters[destPos:]...)...)
-		}
-
-		utils.ReorderPlaylist(destCard)
-		return apiClient.UpdateCard(destCard.CardID, destCard)
+		fmt.Printf("Copying track %d from '%s' to '%s' position %d...\n", srcIdx+1, srcCard.Title, destCardRef.Title, destPos)
+		return actions.CopyTrack(apiClient, srcCard.CardID, srcIdx+1, destCardRef.CardID, destPos)
 	},
 }
 
