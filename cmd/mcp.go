@@ -32,39 +32,43 @@ var mcpCmd = &cobra.Command{
 			Level: slog.LevelDebug,
 		}))
 
-		// Create MCP Server
-		s := mcp.NewServer(&mcp.Implementation{
-			Name:    "yoto-mcp",
-			Version: "1.0.0",
-		}, &mcp.ServerOptions{
-			Logger: logger,
-		})
+		// Helper to create and configure a new server
+		createServer := func() *mcp.Server {
+			s := mcp.NewServer(&mcp.Implementation{
+				Name:    "yoto-mcp",
+				Version: "1.0.0",
+			}, &mcp.ServerOptions{
+				Logger: logger,
+			})
 
-		// Register Tools
-		mcp.AddTool(s, &mcp.Tool{Name: "list_playlists", Description: "List all Yoto cards/playlists in the library"}, listPlaylistsHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "get_playlist", Description: "Get details of a specific playlist"}, getPlaylistHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "list_devices", Description: "List registered Yoto players"}, listDevicesHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "get_device_status", Description: "Check battery/volume of a player"}, getDeviceStatusHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "create_playlist", Description: "Create a new empty playlist"}, createPlaylistHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "upload_icon", Description: "Upload a custom icon"}, uploadIconHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "remove_track", Description: "Remove a track from a playlist"}, removeTrackHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "move_track", Description: "Move or reorder a track"}, moveTrackHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "copy_track", Description: "Copy a track to another playlist"}, copyTrackHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "pause_player", Description: "Pause playback on a device"}, pausePlayerHandler)
+			// Register Tools
+			mcp.AddTool(s, &mcp.Tool{Name: "list_playlists", Description: "List all Yoto cards/playlists in the library"}, listPlaylistsHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "get_playlist", Description: "Get details of a specific playlist"}, getPlaylistHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "list_devices", Description: "List registered Yoto players"}, listDevicesHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "get_device_status", Description: "Check battery/volume of a player"}, getDeviceStatusHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "create_playlist", Description: "Create a new empty playlist"}, createPlaylistHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "upload_icon", Description: "Upload a custom icon"}, uploadIconHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "remove_track", Description: "Remove a track from a playlist"}, removeTrackHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "move_track", Description: "Move or reorder a track"}, moveTrackHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "copy_track", Description: "Copy a track to another playlist"}, copyTrackHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "set_volume", Description: "Set the volume of a player (0-100)"}, setVolumeHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "play_card", Description: "Start playing a playlist on a device"}, playCardHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "stop_player", Description: "Stop playback on a device"}, stopPlayerHandler)
+			mcp.AddTool(s, &mcp.Tool{Name: "pause_player", Description: "Pause playback on a device"}, pausePlayerHandler)
+
+			return s
+		}
 
 		// Start Server
 		if mcpTransport == "sse" {
 			// Create SSE Handler
 			handler := mcp.NewSSEHandler(func(r *http.Request) *mcp.Server {
-				return s
+				return createServer()
 			}, &mcp.SSEOptions{})
 
 			mux := http.NewServeMux()
@@ -102,7 +106,7 @@ var mcpCmd = &cobra.Command{
 			fmt.Println("Server exited properly")
 		} else {
 			// Default Stdio
-			if err := s.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+			if err := createServer().Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 				log.Fatalf("Server failed: %v", err)
 			}
 		}
