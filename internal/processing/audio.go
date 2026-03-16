@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 type FFProbeResponse struct {
@@ -50,20 +49,25 @@ func NormalizeAudio(inputPath string) (string, error) {
 		targetLUFS = -18
 	}
 
-	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("yoto_norm_%d.mp3", os.Getpid()))
-	
+	tempFile, err := os.CreateTemp("", "yoto_norm_*.mp3")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tempPath := tempFile.Name()
+	tempFile.Close()
+
 	cmd := exec.Command("ffmpeg",
 		"-y",
 		"-i", inputPath,
 		"-filter:a", fmt.Sprintf("loudnorm=I=%d:TP=-1.5:LRA=11", targetLUFS),
 		"-c:a", "libmp3lame",
 		"-q:a", "2",
-		tempFile,
+		tempPath,
 	)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
+		os.Remove(tempPath)
 		return "", fmt.Errorf("ffmpeg error: %w (output: %s)", err, string(output))
 	}
 
-	return tempFile, nil
-}
+	return tempPath, nil}

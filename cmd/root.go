@@ -24,14 +24,20 @@ var rootCmd = &cobra.Command{
 	Long: `YotoCLI is a tool for advanced users to manage their Yoto library.
 It allows for uploading files, creating playlists, and managing device state directly from the terminal.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Initialize the API client with the token from config
-		token := config.GetAccessToken()
-		clientID := config.GetClientID()
-		apiClient = yoto.NewClient(token, clientID)
+	        // Initialize the API client with the token from config
+	        token := config.GetAccessToken()
+	        clientID := config.GetClientID()
+	        apiClient = yoto.NewClient(token, clientID)
 
-		// Check if token is valid by making a lightweight call
-		// If unauthorized, try to refresh
-		if token != "" {
+	        // Skip refresh logic for the login command itself
+	        if cmd.Name() == "login" {
+	            return nil
+	        }
+
+	        // Check if token is valid by making a lightweight call
+	        // If unauthorized, try to refresh
+	        if token != "" {
+
 			_, err := apiClient.ListDevices()
 			if err != nil && (strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "401")) {
 				fmt.Println("Access token expired. Attempting refresh...")

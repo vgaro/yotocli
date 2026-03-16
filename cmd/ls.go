@@ -132,6 +132,7 @@ func printTrack(card *yoto.Card, query string) {
 		t := foundChapter.Tracks[0]
 		fmt.Printf("  Format:   %s\n", t.Format)
 		fmt.Printf("  Size:     %.2f MB\n", float64(t.FileSize)/1024/1024)
+		fmt.Printf("  Icon:     %s\n", t.Display.Icon16x16)
 		fmt.Printf("  URL:      %s\n", t.TrackURL)
 	}
 }
