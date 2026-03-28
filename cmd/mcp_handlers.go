@@ -251,17 +251,40 @@ func setTrackIconHandler(ctx context.Context, req *mcp.CallToolRequest, input Se
 
 // Upload Icon
 type UploadIconInput struct {
-	FilePath string `json:"file_path" jsonschema:"Path to the icon file (local path or URL)"`
+        FilePath string   `json:"file_path" jsonschema:"Path to the icon file (local path or URL)"`
+        Name     string   `json:"name,omitempty" jsonschema:"Friendly name for the icon"`
+        Tags     []string `json:"tags,omitempty" jsonschema:"Optional tags for categorization"`
 }
 
 func uploadIconHandler(ctx context.Context, req *mcp.CallToolRequest, input UploadIconInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	id, err := actions.UploadIcon(apiClient, input.FilePath)
-	if err != nil {
-		return nil, SimpleOutput{}, err
-	}
-	return nil, SimpleOutput{Message: fmt.Sprintf("Icon uploaded. ID: %s", id)}, nil
+        id, err := actions.UploadIcon(apiClient, input.FilePath, input.Name, input.Tags)
+        if err != nil {
+                return nil, SimpleOutput{}, err
+        }
+        return nil, SimpleOutput{Message: fmt.Sprintf("Icon uploaded. ID: %s", id)}, nil
 }
 
+// List Icons
+func listIconsHandler(ctx context.Context, req *mcp.CallToolRequest, input EmptyInput) (*mcp.CallToolResult, interface{}, error) {
+        icons, err := actions.ListIcons(apiClient)
+        if err != nil {
+                return nil, nil, err
+        }
+        return nil, icons, nil
+}
+
+// Search Icons
+type SearchIconsInput struct {
+        Query string `json:"query" jsonschema:"Search term (name or tag)"`
+}
+
+func searchIconsHandler(ctx context.Context, req *mcp.CallToolRequest, input SearchIconsInput) (*mcp.CallToolResult, interface{}, error) {
+        results, err := actions.SearchIcons(input.Query)
+        if err != nil {
+                return nil, nil, err
+        }
+        return nil, results, nil
+}
 // Set Volume
 type SetVolumeInput struct {
 	Volume   int    `json:"volume" jsonschema:"Volume level (0-100)"`

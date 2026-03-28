@@ -1,350 +1,315 @@
 package yoto
 
 import (
-	"fmt"
-	"io"
-	"os"
-	"strings"
+        "fmt"
+        "io"
+        "os"
+        "strings"
 
-	"github.com/go-resty/resty/v2"
+        "github.com/go-resty/resty/v2"
 )
 
 const (
-	BaseURL = "https://api.yotoplay.com"
+        BaseURL = "https://api.yotoplay.com"
 )
 
 // Client handles communication with the Yoto API
 type Client struct {
-	http     *resty.Client
-	token    string
-	clientID string
+        http     *resty.Client
+        token    string
+        clientID string
 }
 
 // NewClient creates a new Yoto API client
 func NewClient(token, clientID string) *Client {
-	client := resty.New()
-	client.SetBaseURL(BaseURL)
-	client.SetHeader("User-Agent", "Yoto/2.73 (com.yotoplay.Yoto; build:10405; iOS 17.4.0)")
-	
-	if token != "" {
-		client.SetAuthToken(token)
-	}
+        client := resty.New()
+        client.SetBaseURL(BaseURL)
+        client.SetHeader("User-Agent", "Yoto/2.73 (com.yotoplay.Yoto; build:10405; iOS 17.4.0)")
 
-	return &Client{
-		http:     client,
-		token:    token,
-		clientID: clientID,
-	}
+        if token != "" {
+                client.SetAuthToken(token)
+        }
+
+        return &Client{
+                http:     client,
+                token:    token,
+                clientID: clientID,
+        }
 }
 
 func (c *Client) ListCards() ([]Card, error) {
-	var result LibraryResponse
-	resp, err := c.http.R().
-		SetResult(&result).
-		Get("/card/family/library")
+        var result LibraryResponse
+        resp, err := c.http.R().
+                SetResult(&result).
+                Get("/card/family/library")
 
-	if err != nil {
-		return nil, err
-	}
-	if resp.IsError() {
-		return nil, fmt.Errorf("api error: %s", resp.String())
-	}
+        if err != nil {
+                return nil, err
+        }
+        if resp.IsError() {
+                return nil, fmt.Errorf("api error: %s", resp.String())
+        }
 
-	cards := make([]Card, len(result.Cards))
-	for i, item := range result.Cards {
-		cards[i] = item.Card
-	}
-	return cards, nil
+        cards := make([]Card, len(result.Cards))
+        for i, item := range result.Cards {
+                cards[i] = item.Card
+        }
+        return cards, nil
 }
 
 func (c *Client) GetCard(id string) (*Card, error) {
-	var result struct {
-		Card Card `json:"card"`
-	}
-	resp, err := c.http.R().
-		SetResult(&result).
-		Get("/card/" + id)
+        var result struct {
+                Card Card `json:"card"`
+        }
+        resp, err := c.http.R().
+                SetResult(&result).
+                Get("/card/" + id)
 
-	if err != nil {
-		return nil, err
-	}
-	if resp.IsError() {
-		return nil, fmt.Errorf("api error: %s", resp.String())
-	}
+        if err != nil {
+                return nil, err
+        }
+        if resp.IsError() {
+                return nil, fmt.Errorf("api error: %s", resp.String())
+        }
 
-	return &result.Card, nil
+        return &result.Card, nil
 }
 
 func (c *Client) DeleteCard(id string) error {
-	resp, err := c.http.R().
-		Delete("/content/" + id)
+        resp, err := c.http.R().
+                Delete("/content/" + id)
 
-	if err != nil {
-		return err
-	}
-		if resp.IsError() {
-			return fmt.Errorf("api error: %s", resp.String())
-		}
-		return nil
-	}
-	
-	func (c *Client) PlayCard(deviceID string, cardID string) error {
-		resp, err := c.http.R().
-			SetBody(map[string]string{"cardId": cardID}).
-			Post("/device-v2/" + deviceID + "/play")
-	
-		if err != nil {
-			return err
-		}
-		if resp.IsError() {
-			return fmt.Errorf("api error: %s", resp.String())
-		}
-		return nil
-	}
-	
-	func (c *Client) StopPlayer(deviceID string) error {
-		resp, err := c.http.R().
-			Post("/device-v2/" + deviceID + "/stop")
-	
-		if err != nil {
-			return err
-		}
-		if resp.IsError() {
-			return fmt.Errorf("api error: %s", resp.String())
-		}
-		return nil
-	}
-	
-	func (c *Client) PausePlayer(deviceID string) error {
-		resp, err := c.http.R().
-			Post("/device-v2/" + deviceID + "/pause")
-	
-		if err != nil {
-			return err
-		}
-		if resp.IsError() {
-			return fmt.Errorf("api error: %s", resp.String())
-		}
-			return nil
-		}
-		
-		func (c *Client) UploadIcon(path string) (string, error) {
-			var result struct {
-				DisplayIcon struct {
-					MediaID string `json:"mediaId"`
-				} `json:"displayIcon"`
-			}
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
+}
 
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return "", err
-			}
+func (c *Client) PlayCard(deviceID string, cardID string) error {
+        resp, err := c.http.R().
+                SetBody(map[string]string{"cardId": cardID}).
+                Post("/device-v2/" + deviceID + "/play")
 
-			resp, err := c.http.R().
-				SetHeader("Content-Type", "image/png").
-				SetBody(data).
-				SetQueryParam("autoConvert", "true").
-				SetResult(&result).
-				Post("/media/displayIcons/user/me/upload")
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
+}
 
-			if err != nil {
-				return "", err
-			}
-			if resp.IsError() {
-				return "", fmt.Errorf("api error: %s", resp.String())
-			}
+func (c *Client) StopPlayer(deviceID string) error {
+        resp, err := c.http.R().
+                Post("/device-v2/" + deviceID + "/stop")
 
-			return result.DisplayIcon.MediaID, nil
-		}
-		
-		func (c *Client) UpdateCard(id string, card *Card) error {	// Sanitize icons: Convert https URLs back to yoto:#hash format
-	sanitizeCardForUpdate(card)
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
+}
 
-	// The API for content update seems to use the same endpoint as create (Upsert)
-	// We POST to /content, and since the body has cardId, it should update.
-	resp, err := c.http.R().
-		SetBody(card).
-		Post("/content")
+func (c *Client) PausePlayer(deviceID string) error {
+        resp, err := c.http.R().
+                Post("/device-v2/" + deviceID + "/pause")
 
-	if err != nil {
-		return err
-	}
-	if resp.IsError() {
-		return fmt.Errorf("api error: %s", resp.String())
-	}
-	return nil
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
+}
+
+func (c *Client) UploadIcon(path string) (string, error) {
+        var result struct {
+                DisplayIcon struct {
+                        MediaID string `json:"mediaId"`
+                } `json:"displayIcon"`
+        }
+
+        data, err := os.ReadFile(path)
+        if err != nil {
+                return "", err
+        }
+
+        resp, err := c.http.R().
+                SetHeader("Content-Type", "image/png").
+                SetBody(data).
+                SetQueryParam("autoConvert", "true").
+                SetResult(&result).
+                Post("/media/displayIcons/user/me/upload")
+
+        if err != nil {
+                return "", err
+        }
+        if resp.IsError() {
+                return "", fmt.Errorf("api error: %s", resp.String())
+        }
+
+        return result.DisplayIcon.MediaID, nil
+}
+
+func (c *Client) ListIcons() ([]DisplayIcon, error) {
+        var result DisplayIconsResponse
+        resp, err := c.http.R().
+                SetResult(&result).
+                Get("/media/displayIcons/user/me")
+
+        if err != nil {
+                return nil, err
+        }
+        if resp.IsError() {
+                return nil, fmt.Errorf("api error: %s", resp.String())
+        }
+
+        return result.DisplayIcons, nil
+}
+
+func (c *Client) UpdateCard(id string, card *Card) error {
+        // Sanitize icons: Convert https URLs back to yoto:#hash format
+        sanitizeCardForUpdate(card)
+
+        // The API for content update seems to use the same endpoint as create (Upsert)
+        // We POST to /content, and since the body has cardId, it should update.
+        resp, err := c.http.R().
+                SetBody(card).
+                Post("/content")
+
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
 }
 
 func sanitizeCardForUpdate(card *Card) {
-	if card.Content == nil {
-		return
-	}
-	for i := range card.Content.Chapters {
-		fixIcon(&card.Content.Chapters[i].Display)
-		for j := range card.Content.Chapters[i].Tracks {
-			fixIcon(&card.Content.Chapters[i].Tracks[j].Display)
-			
-			// Ensure Type is set
-			if card.Content.Chapters[i].Tracks[j].Type == "" {
-				card.Content.Chapters[i].Tracks[j].Type = "audio"
-			}
-		}
-	}
+        if card.Content == nil {
+                return
+        }
+        for i := range card.Content.Chapters {
+                fixIcon(&card.Content.Chapters[i].Display)
+                for j := range card.Content.Chapters[i].Tracks {
+                        fixIcon(&card.Content.Chapters[i].Tracks[j].Display)
+
+                        // Ensure Type is set
+                        if card.Content.Chapters[i].Tracks[j].Type == "" {
+                                card.Content.Chapters[i].Tracks[j].Type = "audio"
+                        }
+                }
+        }
 }
 
 func fixIcon(d *Display) {
-	if d == nil || d.Icon16x16 == "" {
-		return
-	}
-	if strings.HasPrefix(d.Icon16x16, "http") {
-		// Extract last part of path
-		parts := strings.Split(d.Icon16x16, "/")
-		if len(parts) > 0 {
-			hash := parts[len(parts)-1]
-			// Sometimes URLs have query params, strip them
-			if idx := strings.Index(hash, "?"); idx != -1 {
-				hash = hash[:idx]
-			}
-			// Verify length is 43? Or just try.
-			if len(hash) == 43 {
-				d.Icon16x16 = "yoto:#" + hash
-			}
-		}
-	}
+        if d == nil || d.Icon16x16 == "" {
+                return
+        }
+        if strings.HasPrefix(d.Icon16x16, "http") {
+                // Extract last part of path
+                parts := strings.Split(d.Icon16x16, "/")
+                if len(parts) > 0 {
+                        hash := parts[len(parts)-1]
+                        // Sometimes URLs have query params, strip them
+                        if idx := strings.Index(hash, "?"); idx != -1 {
+                                hash = hash[:idx]
+                        }
+                        // Verify length is 43? Or just try.
+                        if len(hash) == 43 {
+                                d.Icon16x16 = "yoto:#" + hash
+                        }
+                }
+        }
 }
 
 func (c *Client) CreateCard(card *Card) error {
-	resp, err := c.http.R().
-		SetBody(card).
-		Post("/content")
+        resp, err := c.http.R().
+                SetBody(card).
+                Post("/content")
 
-	if err != nil {
-		return err
-	}
-	if resp.IsError() {
-		return fmt.Errorf("api error: %s", resp.String())
-	}
-	return nil
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
 }
 
 func (c *Client) DownloadFile(url string, destPath string) error {
-	resp, err := c.http.R().
-		SetDoNotParseResponse(true).
-		Get(url)
+        resp, err := c.http.R().
+                SetDoNotParseResponse(true).
+                Get(url)
 
-	if err != nil {
-		return err
-	}
-	defer resp.RawBody().Close()
+        if err != nil {
+                return err
+        }
+        defer resp.RawBody().Close()
 
-	if resp.IsError() {
-		return fmt.Errorf("download failed: %s", resp.Status())
-	}
+        if resp.IsError() {
+                return fmt.Errorf("download failed: %s", resp.Status())
+        }
 
-	out, err := os.Create(destPath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+        out, err := os.Create(destPath)
+        if err != nil {
+                return err
+        }
+        defer out.Close()
 
-		_, err = io.Copy(out, resp.RawBody())
+        _, err = io.Copy(out, resp.RawBody())
+        return err
+}
 
-		return err
+func (c *Client) ListDevices() ([]Device, error) {
+        var result DevicesResponse
+        resp, err := c.http.R().
+                SetResult(&result).
+                Get("/device-v2/devices/mine")
 
-	}
+        if err != nil {
+                return nil, err
+        }
+        if resp.IsError() {
+                return nil, fmt.Errorf("api error: %s", resp.String())
+        }
+        return result.Devices, nil
+}
 
-	
+func (c *Client) GetDeviceStatus(deviceID string) (*DeviceStatus, error) {
+        var result struct {
+                Status DeviceStatus `json:"status"`
+        }
+        resp, err := c.http.R().
+                SetResult(&result).
+                Get("/device-v2/" + deviceID + "/status")
 
-	func (c *Client) ListDevices() ([]Device, error) {
+        if err != nil {
+                return nil, err
+        }
+        if resp.IsError() {
+                return nil, fmt.Errorf("api error: %s", resp.String())
+        }
+        return &result.Status, nil
+}
 
-		var result DevicesResponse
+func (c *Client) SetVolume(deviceID string, volume int) error {
+        resp, err := c.http.R().
+                SetBody(map[string]int{"volume": volume}).
+                Post("/device-v2/" + deviceID + "/volume")
 
-		resp, err := c.http.R().
-
-			SetResult(&result).
-
-			Get("/device-v2/devices/mine")
-
-	
-
-		if err != nil {
-
-			return nil, err
-
-		}
-
-		if resp.IsError() {
-
-			return nil, fmt.Errorf("api error: %s", resp.String())
-
-		}
-
-		return result.Devices, nil
-
-	}
-
-	
-
-	func (c *Client) GetDeviceStatus(deviceID string) (*DeviceStatus, error) {
-
-		var result struct {
-
-			Status DeviceStatus `json:"status"`
-
-		}
-
-		resp, err := c.http.R().
-
-			SetResult(&result).
-
-			Get("/device-v2/" + deviceID + "/status")
-
-	
-
-		if err != nil {
-
-			return nil, err
-
-		}
-
-		if resp.IsError() {
-
-			return nil, fmt.Errorf("api error: %s", resp.String())
-
-		}
-
-			return &result.Status, nil
-
-		}
-
-		
-
-		func (c *Client) SetVolume(deviceID string, volume int) error {
-
-			resp, err := c.http.R().
-
-				SetBody(map[string]int{"volume": volume}).
-
-				Post("/device-v2/" + deviceID + "/volume")
-
-		
-
-			if err != nil {
-
-				return err
-
-			}
-
-			if resp.IsError() {
-
-				return fmt.Errorf("api error: %s", resp.String())
-
-			}
-
-			return nil
-
-		}
-
-		
-
-	
+        if err != nil {
+                return err
+        }
+        if resp.IsError() {
+                return fmt.Errorf("api error: %s", resp.String())
+        }
+        return nil
+}
