@@ -1,52 +1,62 @@
 package actions
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/vgaro/yotocli/internal/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSearchIconsLogic(t *testing.T) {
-	// Mock icons
-	icons := []config.IconRecord{
-		{ID: "id1", Name: "bee", Tags: []string{"insect", "yellow"}},
-		{ID: "id2", Name: "fire", Tags: []string{"emergency", "red"}},
-		{ID: "id3", Name: "water", Tags: []string{"blue"}},
-	}
+func TestSearchIcons(t *testing.T) {
+	// Setup a temporary directory for config
+	tmpDir, err := os.MkdirTemp("", "yoto-search-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	// Helper to simulate SearchIcons without hitting disk
-	search := func(query string) []config.IconRecord {
-		var results []config.IconRecord
-		for _, icon := range icons {
-			if icon.Name == query {
-				results = append(results, icon)
-				continue
-			}
-			for _, tag := range icon.Tags {
-				if tag == query {
-					results = append(results, icon)
-					break
-				}
-			}
-		}
-		return results
-	}
+	// Set the global IconsPath for testing
+	originalPath := config.IconsPath
+	testPath := filepath.Join(tmpDir, "icons.yaml")
+	config.IconsPath = testPath
+	defer func() { config.IconsPath = originalPath }()
 
-	t.Run("SearchByName", func(t *testing.T) {
-		res := search("bee")
+	// Seed with icons
+	icons := &config.IconsConfig{
+		Icons: []config.IconRecord{
+			{ID: "id1", Name: "Bee", Tags: []string{"insect", "yellow"}},
+			{ID: "id2", Name: "Fire", Tags: []string{"emergency", "RED"}},
+			{ID: "id3", Name: "Water", Tags: []string{"blue"}},
+		},
+	}
+	err = config.SaveIcons(icons)
+	require.NoError(t, err)
+
+	t.Run("CaseInsensitiveName", func(t *testing.T) {
+		res, err := SearchIcons("bee")
+		require.NoError(t, err)
 		assert.Equal(t, 1, len(res))
 		assert.Equal(t, "id1", res[0].ID)
 	})
 
-	t.Run("SearchByTag", func(t *testing.T) {
-		res := search("emergency")
+	t.Run("CaseInsensitiveTag", func(t *testing.T) {
+		res, err := SearchIcons("red")
+		require.NoError(t, err)
 		assert.Equal(t, 1, len(res))
-		assert.Equal(t, "fire", res[0].Name)
+		assert.Equal(t, "id2", res[0].ID)
+	})
+
+	t.Run("PartialMatch", func(t *testing.T) {
+		// "er" matches Water (name) and Fire (tag: emergency)
+		res, err := SearchIcons("er")
+		require.NoError(t, err)
+		assert.Equal(t, 2, len(res))
 	})
 
 	t.Run("NoResults", func(t *testing.T) {
-		res := search("missing")
+		res, err := SearchIcons("missing")
+		require.NoError(t, err)
 		assert.Equal(t, 0, len(res))
 	})
 }

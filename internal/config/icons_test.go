@@ -2,62 +2,70 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestIconRegistry(t *testing.T) {
-	// Setup a temporary home directory
-	tmpDir, err := os.MkdirTemp("", "yoto-test-*")
+func TestIconRegistryFileIO(t *testing.T) {
+	// Setup a temporary directory for config
+	tmpDir, err := os.MkdirTemp("", "yoto-config-test-*")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	t.Run("AddIconRecord", func(t *testing.T) {
+	// Set the global IconsPath for testing
+	originalPath := IconsPath
+	testPath := filepath.Join(tmpDir, "icons.yaml")
+	IconsPath = testPath
+	defer func() { IconsPath = originalPath }()
+
+	t.Run("LoadNonExistent", func(t *testing.T) {
+		cfg, err := LoadIcons()
+		require.NoError(t, err)
+		assert.NotNil(t, cfg)
+		assert.Equal(t, 0, len(cfg.Icons))
+	})
+
+	t.Run("SaveAndLoad", func(t *testing.T) {
 		cfg := &IconsConfig{
 			Icons: []IconRecord{
-				{ID: "id1", Name: "name1", Tags: []string{"tag1"}},
+				{ID: "id1", Name: "bee", Tags: []string{"insect"}},
 			},
 		}
+		err := SaveIcons(cfg)
+		require.NoError(t, err)
 
-		// Simulate adding a new record
-		newRecord := IconRecord{ID: "id2", Name: "name2", Tags: []string{"tag2"}}
-		cfg.Icons = append(cfg.Icons, newRecord)
+		// Verify file exists
+		assert.FileExists(t, testPath)
 
-		assert.Equal(t, 2, len(cfg.Icons))
-		assert.Equal(t, "id2", cfg.Icons[1].ID)
-
-		// Simulate updating an existing record
-		cfg.Icons[0].Name = "updated"
-		assert.Equal(t, "updated", cfg.Icons[0].Name)
+		// Load back
+		loaded, err := LoadIcons()
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(loaded.Icons))
+		assert.Equal(t, "bee", loaded.Icons[0].Name)
 	})
-}
 
-func TestAddIconRecordLogic(t *testing.T) {
-	// Let's create a testable version of the logic to verify the upsert behavior
-	icons := []IconRecord{
-		{ID: "1", Name: "one"},
-	}
+	t.Run("AddIconRecord", func(t *testing.T) {
+		err := AddIconRecord("id2", "fire", []string{"hot"})
+		require.NoError(t, err)
 
-	// Helper to simulate the logic in AddIconRecord
-	upsert := func(list []IconRecord, id, name string) []IconRecord {
-		for i, icon := range list {
-			if icon.ID == id {
-				list[i].Name = name
-				return list
-			}
-		}
-		return append(list, IconRecord{ID: id, Name: name})
-	}
+		loaded, err := LoadIcons()
+		require.NoError(t, err)
+		assert.Equal(t, 2, len(loaded.Icons))
+		assert.Equal(t, "fire", loaded.Icons[1].Name)
+	})
 
-	// Test Update
-	icons = upsert(icons, "1", "updated")
-	assert.Equal(t, 1, len(icons))
-	assert.Equal(t, "updated", icons[0].Name)
+	t.Run("UpsertIconRecord", func(t *testing.T) {
+		// Update id1
+		err := AddIconRecord("id1", "bumblebee", []string{"insect", "yellow"})
+		require.NoError(t, err)
 
-	// Test Add
-	icons = upsert(icons, "2", "two")
-	assert.Equal(t, 2, len(icons))
-	assert.Equal(t, "2", icons[1].ID)
+		loaded, err := LoadIcons()
+		require.NoError(t, err)
+		assert.Equal(t, 2, len(loaded.Icons))
+		assert.Equal(t, "bumblebee", loaded.Icons[0].Name)
+		assert.Contains(t, loaded.Icons[0].Tags, "yellow")
+	})
 }

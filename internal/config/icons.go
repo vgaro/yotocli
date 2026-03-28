@@ -17,9 +17,18 @@ type IconsConfig struct {
         Icons []IconRecord `yaml:"icons"`
 }
 
-func LoadIcons() (*IconsConfig, error) {
+var IconsPath string
+
+func getIconsPath() string {
+        if IconsPath != "" {
+                return IconsPath
+        }
         home, _ := os.UserHomeDir()
-        path := filepath.Join(home, ".config", "yotocli", "icons.yaml")
+        return filepath.Join(home, ".config", "yotocli", "icons.yaml")
+}
+
+func LoadIcons() (*IconsConfig, error) {
+        path := getIconsPath()
 
         data, err := os.ReadFile(path)
         if err != nil {
@@ -37,11 +46,10 @@ func LoadIcons() (*IconsConfig, error) {
 }
 
 func SaveIcons(config *IconsConfig) error {
-        home, _ := os.UserHomeDir()
-        configPath := filepath.Join(home, ".config", "yotocli")
-        path := filepath.Join(configPath, "icons.yaml")
+        path := getIconsPath()
+        configDir := filepath.Dir(path)
 
-        if err := os.MkdirAll(configPath, 0755); err != nil {
+        if err := os.MkdirAll(configDir, 0755); err != nil {
                 return err
         }
 
