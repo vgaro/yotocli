@@ -36,3 +36,15 @@
     - Verified cleanup by removing the track with the temporary title.
 - **Blockers:** None.
 - **Next Steps:** Consider adding a flag to `add` command to allow specifying a custom track title during upload.
+
+## [2026-03-28] - [Icon Search & Custom Titles] - [Iteration]
+- **Goal:** Enable local icon searching and custom titles for local uploads.
+- **Activity:**
+    - **Icon Registry**: Implemented `internal/config/icons.go` to manage a local `icons.yaml` mapping ID to Name/Tags.
+    - **Icon Search**: Added `yoto icon ls` and `yoto icon search <query>` to list and search the local registry.
+    - **Icon Metadata**: Updated `yoto icon upload` to accept `--name` and `--tags`, automatically saving them to the registry.
+    - **Custom Titles**: Added `--title` (-t) flag to `yoto add` command to allow custom track names during local file upload.
+    - **MCP Update**: Exposed `list_icons` and `search_icons` via the MCP server and updated `upload_icon` to support names/tags.
+    - **Refactor**: Cleaned up `pkg/yoto/client.go` structural issues and improved error handling for icon listing.
+- **Blockers:** Yoto API does not provide icon names, necessitating the local registry workaround.
+- **Next Steps:** Maintain the local icon registry as new icons are uploaded.
