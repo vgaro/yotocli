@@ -46,5 +46,6 @@
     - **Custom Titles**: Added `--title` (-t) flag to `yoto add` command to allow custom track names during local file upload.
     - **MCP Update**: Exposed `list_icons` and `search_icons` via the MCP server and updated `upload_icon` to support names/tags.
     - **Refactor**: Cleaned up `pkg/yoto/client.go` structural issues and improved error handling for icon listing.
+    - **Testing**: Added unit tests for icon registry logic and search functionality in `internal/config/icons_test.go` and `internal/actions/icon_test.go`.
 - **Blockers:** Yoto API does not provide icon names, necessitating the local registry workaround.
 - **Next Steps:** Maintain the local icon registry as new icons are uploaded.
