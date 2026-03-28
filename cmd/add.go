@@ -31,10 +31,9 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 		playlistArg := args[0]
 		filePath := args[1]
 
-		return actions.AddTrack(apiClient, playlistArg, filePath, addIcon, !addNoNormalize, func(format string, args ...interface{}) {
-			fmt.Printf(format+"\n", args...)
-		})
-	},
+		return actions.AddTrack(apiClient, playlistArg, filePath, "", addIcon, !addNoNormalize, func(format string, args ...interface{}) {
+		        fmt.Printf(format+"\n", args...)
+		})	},
 }
 
 func init() {

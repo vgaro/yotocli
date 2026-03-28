@@ -130,18 +130,20 @@ func (c *Client) DeleteCard(id string) error {
 		
 		func (c *Client) UploadIcon(path string) (string, error) {
 			var result struct {
-				ID string `json:"id"`
+				DisplayIcon struct {
+					MediaID string `json:"mediaId"`
+				} `json:"displayIcon"`
 			}
 
-			file, err := os.Open(path)
+			data, err := os.ReadFile(path)
 			if err != nil {
 				return "", err
 			}
-			defer file.Close()
 
 			resp, err := c.http.R().
-				SetFileReader("file", "icon.png", file).
-				SetFormData(map[string]string{"autoConvert": "true"}).
+				SetHeader("Content-Type", "image/png").
+				SetBody(data).
+				SetQueryParam("autoConvert", "true").
 				SetResult(&result).
 				Post("/media/displayIcons/user/me/upload")
 
@@ -152,8 +154,9 @@ func (c *Client) DeleteCard(id string) error {
 				return "", fmt.Errorf("api error: %s", resp.String())
 			}
 
-			return result.ID, nil
-		}		
+			return result.DisplayIcon.MediaID, nil
+		}
+		
 		func (c *Client) UpdateCard(id string, card *Card) error {	// Sanitize icons: Convert https URLs back to yoto:#hash format
 	sanitizeCardForUpdate(card)
 

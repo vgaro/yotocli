@@ -28,8 +28,10 @@ func DownloadFromURL(url string) (string, string, error) {
 	outputTemplate := filepath.Join(tmpDir, "yoto_import_%(id)s.%(ext)s")
 
 	cmd := exec.Command("yt-dlp",
-		"-x",                    // Extract audio
-		"--audio-format", "mp3", // Convert to mp3
+	        "--remote-components", "ejs:github",
+	        "--js-runtimes", "node",
+	        "-x",                    // Extract audio
+	        "--audio-format", "mp3", // Convert to mp3
 		"--audio-quality", "0",  // Best quality
 		"-o", outputTemplate,    // Output path
 		"--print", "after_move:filepath", // Print final filename

@@ -192,25 +192,25 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 
 // Add Track (Local File)
 type AddTrackInput struct {
-	FilePath     string `json:"file_path" jsonschema:"The path to the local audio file to upload"`
-	PlaylistName string `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
-	IconID       string `json:"icon_id,omitempty" jsonschema:"Optional icon ID (e.g. from upload_icon)"`
-	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+        FilePath     string `json:"file_path" jsonschema:"The path to the local audio file to upload"`
+        PlaylistName string `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
+        Title        string `json:"title,omitempty" jsonschema:"Optional title for the track"`
+        IconID       string `json:"icon_id,omitempty" jsonschema:"Optional icon ID (e.g. from upload_icon)"`
+        NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
 }
 
 func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
-	// Simple logger
-	logger := func(format string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, format+"\n", args...)
-	}
+        // Simple logger
+        logger := func(format string, args ...interface{}) {
+                fmt.Fprintf(os.Stderr, format+"\n", args...)
+        }
 
-	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.IconID, !input.NoNormalize, logger)
-	if err != nil {
-		return nil, SimpleOutput{}, err
-	}
-	return nil, SimpleOutput{Message: "Track added successfully"}, nil
+        err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.Title, input.IconID, !input.NoNormalize, logger)
+        if err != nil {
+                return nil, SimpleOutput{}, err
+        }
+        return nil, SimpleOutput{Message: "Track added successfully"}, nil
 }
-
 // Set Track Icon
 type SetTrackIconInput struct {
 	PlaylistID string `json:"playlist_id" jsonschema:"The ID of the playlist"`
