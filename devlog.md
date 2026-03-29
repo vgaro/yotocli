@@ -49,3 +49,12 @@
     - **Testing**: Added unit tests for icon registry logic and search functionality in `internal/config/icons_test.go` and `internal/actions/icon_test.go`.
 - **Blockers:** Yoto API does not provide icon names, necessitating the local registry workaround.
 - **Next Steps:** Maintain the local icon registry as new icons are uploaded.
+
+## [2026-03-29] - [YouTube & Rocket Icon] - [Direct]
+- **Goal:** Add YouTube video to "bumblebee" playlist with a rocket icon.
+- **Activity:**
+    - Imported "David Bowie - Space Oddity (Official Video)" from YouTube to the "bumblebee" playlist.
+    - Uploaded a new rocket icon from img.icons8.com (ID: f5fyaX2fBQjEaO0f4oz4l2JaqHbTXL4WuhhCF3LMgZs) as the official library ID 'yoto:rocket' was rejected by the API.
+    - Updated track 7 of the "bumblebee" playlist with the new rocket icon.
+- **Blockers:** Yoto API rejected 'yoto:rocket' ID (bad-request), solved by uploading a custom icon and using its generated ID.
+- **Next Steps:** None.
