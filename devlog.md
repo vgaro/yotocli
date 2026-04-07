@@ -58,3 +58,11 @@
     - Updated track 7 of the "bumblebee" playlist with the new rocket icon.
 - **Blockers:** Yoto API rejected 'yoto:rocket' ID (bad-request), solved by uploading a custom icon and using its generated ID.
 - **Next Steps:** None.
+
+## [2026-03-29] - [YouTube Import] - [Direct]
+- **Goal:** Add "Trot to Grandma's House" to "bumblebee" playlist.
+- **Activity:**
+    - Imported "Trot to Grandma's House" from YouTube to the "bumblebee" playlist.
+    - Verified track index 8.
+- **Blockers:** None.
+- **Next Steps:** None.
