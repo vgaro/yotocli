@@ -74,3 +74,59 @@
     - Updated track 8 of the "bumblebee" playlist with the new icon.
 - **Blockers:** None.
 - **Next Steps:** None.
+
+## [2026-05-03] - [YouTube Playlist Import] - [Direct]
+- **Goal:** Create a new Yoto playlist from a YouTube playlist URL.
+- **Activity:**
+    - Attempted direct import of YouTube playlist "El cançoner del Mic".
+    - Handled yt-dlp failure due to a private video by manually organizing the 39 successfully downloaded tracks from /tmp.
+    - Used a Python script to rename and order tracks according to the YouTube playlist metadata.
+    - Successfully created the Yoto playlist "El cançoner del Mic" with 39 tracks using `yoto create`.
+    - Cleaned up temporary files in /tmp and workspace.
+- **Blockers:** yt-dlp exit status 1 on private videos in a playlist, solved by manual orchestration.
+- **Next Steps:** None.
+
+## [2026-05-03] - [Playlist Icon Configuration] - [Iteration]
+- **Goal:** Set reasonable icons for the "El cançoner del Mic" playlist tracks.
+- **Activity:**
+    - Searched local icon registry for song keywords; found few direct matches.
+    - Set a default "rocket" icon (yoto:#f5fyaX2fBQjEaO0f4oz4l2JaqHbTXL4WuhhCF3LMgZs) for the entire playlist.
+    - Manually assigned specific icons to 10 tracks using available IDs:
+        - Track 3 (Pirates): yoto:#GFmnSYlM_tQt3bvTOAapb5BDlNWfZlIeF4kpt5NsJyU
+        - Track 11 (Moon): yoto:#B2z1ZaW6kSfO4ANk1f2gn7fdZrV-mLXGnDF3wKs1LCo
+        - Track 13 (Firemen): yoto:#3xGoLg_unIQuupgbK4vqo8WmeWoS3wY1dUyLhrc8v7M
+        - Track 34 (Ladybug): yoto:#GDqin_NWkFpcXjZM38wVSUe_9SbqY0O7OKIZdQ8LoVU
+        - Track 15, 23, 32 (Animals): yoto:#YQL0qWccBem8fSmGpIcezGgsHP8Cqjz5uUN502wRAUo (Horse)
+        - Track 31 (Fish): yoto:#xypf9kZPRwhrMAMh6DAoVI6eB49X38fkJ9jXbRTaT9U (Gold)
+        - Track 19 (Train): yoto:#f5fyaX2fBQjEaO0f4oz4l2JaqHbTXL4WuhhCF3LMgZs (Rocket)
+- **Blockers:** Limited variety in the local icon registry.
+- **Next Steps:** None.
+
+## [2026-05-03] - [Unique Track Icons] - [Direct]
+- **Goal:** Assign a unique icon to every track in "El cançoner del Mic".
+- **Activity:**
+    - Extracted 70 unique icon IDs from the local registry.
+    - Automated the assignment of the first 39 unique IDs to the 39 tracks of the playlist.
+    - Verified all 39 tracks now have distinct icons.
+- **Blockers:** None.
+- **Next Steps:** None.
+
+## [2026-05-03] - [Refining Track Icons] - [Direct]
+- **Goal:** Restore matching icons for specific songs while keeping all track icons unique.
+- **Activity:**
+    - Re-applied priority icons for themed songs (Pirates, Moon, Fire, etc.).
+    - Backfilled the remaining tracks with unique IDs from the 70 available icons.
+    - Balanced the "uniqueness" requirement with the "thematic match" requirement by allowing thematic icons to repeat only if necessary (e.g., Horse for generic animals) while keeping all other tracks distinct.
+- **Blockers:** None.
+- **Next Steps:** None.
+
+## [2026-05-03] - [Comprehensive Icon Diversification] - [Direct]
+- **Goal:** Minimize icon overlap with other playlists while maintaining thematic relevance.
+- **Activity:**
+    - Performed a full library audit, mapping every icon used in other playlists (56 icons found).
+    - Identified 21 "new" icons that were not used in any other playlist.
+    - Assigned these 21 new icons to tracks in "El cançoner del Mic".
+    - Preserved the 5 high-priority thematic matches (Pirates, Moon, Fire, Ladybug, Fish).
+    - Filled the remaining tracks with unique icons from the library, ensuring no internal repetition and minimal cross-playlist overlap.
+- **Blockers:** None.
+- **Next Steps:** None.
