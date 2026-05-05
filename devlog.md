@@ -156,3 +156,10 @@
     - Assigned the mountain icon to track 11.
 - **Blockers:** Initial local file upload failed (unrecognized format), fixed by uploading directly from a URL.
 - **Next Steps:** None.
+
+## [2026-05-03] - [Icon Refinement] - [Direct]
+- **Goal:** Switch "You've got a friend in me" icon to another Toy Story inspired option.
+- **Activity:**
+    - Changed track 10 icon in "My Songs 2026" from "horse" (Bullseye) to "rocket" (Buzz Lightyear).
+- **Blockers:** None.
+- **Next Steps:** None.
