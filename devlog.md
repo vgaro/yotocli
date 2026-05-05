@@ -147,3 +147,12 @@
     - Identified "rocket" (Buzz inspired) as another thematic option.
 - **Blockers:** None.
 - **Next Steps:** None.
+
+## [2026-05-03] - [Song Import & Custom Icon] - [Direct]
+- **Goal:** Add "The Climb" to "My Songs 2026" with a mountain/climb icon.
+- **Activity:**
+    - Imported "Miley Cyrus - The Climb" from YouTube.
+    - Uploaded a new mountain icon (ID: 095u4o_HBZkokuJd97sZo5IL2pACEaIn5EwpyQw7ET0).
+    - Assigned the mountain icon to track 11.
+- **Blockers:** Initial local file upload failed (unrecognized format), fixed by uploading directly from a URL.
+- **Next Steps:** None.
