@@ -139,3 +139,11 @@
     - Assigned a unique "bee" icon (yoto:#GDqin_NWkFpcXjZM38wVSUe_9SbqY0O7OKIZdQ8LoVU) to the new track (index 10).
 - **Blockers:** None.
 - **Next Steps:** None.
+
+## [2026-05-03] - [Thematic Icon Update] - [Direct]
+- **Goal:** Update "You've got a friend in me" icon to something Toy Story inspired.
+- **Activity:**
+    - Changed track 10 icon in "My Songs 2026" from "bee" to "horse" (Bullseye inspired).
+    - Identified "rocket" (Buzz inspired) as another thematic option.
+- **Blockers:** None.
+- **Next Steps:** None.
