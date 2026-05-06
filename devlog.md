@@ -163,3 +163,12 @@
     - Changed track 10 icon in "My Songs 2026" from "horse" (Bullseye) to "rocket" (Buzz Lightyear).
 - **Blockers:** None.
 - **Next Steps:** None.
+
+## [2026-05-03] - [Web Icon Sourcing] - [Direct]
+- **Goal:** Source and apply high-quality Toy Story icons.
+- **Activity:**
+    - Researched Vecteezy for Toy Story characters.
+    - Downloaded and uploaded "Woody" (ID: I8OXCzWSgOUnU8BzdMHmhuFi9lcTjk3i1uErIjtV4WY) and "Buzz" (ID: 5adY1yW_wxtA4B56PuVXM3cG8SpEk26WLFMG_XZAdJM) icons.
+    - Updated "You've got a friend in me" with the new Woody icon.
+- **Blockers:** Direct URL upload failed due to 403 Forbidden, bypassed by downloading with a User-Agent.
+- **Next Steps:** None.
