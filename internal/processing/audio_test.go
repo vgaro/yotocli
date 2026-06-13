@@ -12,9 +12,10 @@ func TestFFmpegExists(t *testing.T) {
 	}
 }
 
-func TestGetChannelCount_InvalidFile(t *testing.T) {
-	_, err := GetChannelCount("non-existent-file.mp3")
+func TestGetAudioInfo_InvalidFile(t *testing.T) {
+	_, _, err := GetAudioInfo("non-existent-file.mp3")
 	if err == nil {
 		t.Error("Expected error for non-existent file, got nil")
 	}
 }
+

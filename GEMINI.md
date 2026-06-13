@@ -9,6 +9,8 @@ It provides advanced features such as:
 *   **Parallel Uploads:** Concurrent uploading for speed.
 *   **Audio Normalization:** Automatic audio processing using `ffmpeg`.
 *   **Web Import:** Downloading and importing audio directly from URLs (e.g., YouTube).
+    *   Supports **playlists** (downloads all tracks in the playlist).
+    *   Supports **trimming** via `--trim-start` and `--trim-end` flags (seconds).
 *   **Filesystem Metaphor:** Intuitive command structure mimicking standard shell file operations.
 
 ## Architecture

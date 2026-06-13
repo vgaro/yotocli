@@ -14,22 +14,31 @@ import (
 // AddTrack uploads a local file and adds it to a playlist.
 // playlistQuery can be "Name" or "Name/Position".
 // If playlist doesn't exist, it creates it.
-func AddTrack(client *yoto.Client, playlistQuery string, filePath string, title string, iconID string, normalize bool, log Logger) error {
-        if log == nil {
-                log = func(s string, i ...interface{}) {}
-        }
+func AddTrack(client *yoto.Client, playlistQuery string, filePath string, title string, iconID string, normalize bool, trimStart, trimEnd float64, log Logger) error {
+	if log == nil {
+		log = func(s string, i ...interface{}) {}
+	}
 
-        uploadPath := filePath
-        if normalize {
-                log("Normalizing %s...", filepath.Base(filePath))
-                normPath, err := processing.NormalizeAudio(filePath)
-                if err != nil {
-                        log("Warning: Normalization failed: %v. Using original file.", err)
-                } else {
-                        uploadPath = normPath
-                        defer os.Remove(normPath)
-                }
-        }
+	uploadPath := filePath
+	if normalize || trimStart > 0 || trimEnd > 0 {
+		msg := "Processing audio..."
+		if normalize && (trimStart > 0 || trimEnd > 0) {
+			msg = fmt.Sprintf("Normalizing and trimming %s...", filepath.Base(filePath))
+		} else if normalize {
+			msg = fmt.Sprintf("Normalizing %s...", filepath.Base(filePath))
+		} else {
+			msg = fmt.Sprintf("Trimming %s...", filepath.Base(filePath))
+		}
+		log(msg)
+
+		procPath, err := processing.ProcessAudio(filePath, normalize, trimStart, trimEnd)
+		if err != nil {
+			log("Warning: Processing failed: %v. Using original file.", err)
+		} else {
+			uploadPath = procPath
+			defer os.Remove(procPath)
+		}
+	}
 
         cards, err := client.ListCards()
         if err != nil {

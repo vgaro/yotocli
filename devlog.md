@@ -172,3 +172,14 @@
     - Updated "You've got a friend in me" with the new Woody icon.
 - **Blockers:** Direct URL upload failed due to 403 Forbidden, bypassed by downloading with a User-Agent.
 - **Next Steps:** None.
+
+## [2026-06-13] - [Audio Trimming & Playlist Import] - [Phase: Completed]
+- **Goal:** Implement support for audio trimming and bulk playlist importing via URLs.
+- **Activity:**
+    - Added `--trim-start` and `--trim-end` flags to `add` and `import` commands.
+    - Refactored `internal/processing/audio.go` to support exact audio trimming using ffmpeg `-ss` and `-to` parameters.
+    - Updated `internal/processing/downloader.go` to support downloading playlists using `yt-dlp` output formats.
+    - Integrated trimming parameters into `AddTrack` and `ImportFromURL` actions.
+    - Updated MCP handlers in `cmd/mcp_handlers.go` to expose trim capabilities to subagents/MCP clients.
+    - Verified tests pass successfully.
+- **Status:** Complete. Working tree clean.
