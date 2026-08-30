@@ -190,3 +190,12 @@
     - Imported "Un Elefante se Balanceaba" from YouTube (https://youtu.be/udvXVnUii5c?is=0sEAOEDW0PCW9v-F) to the "My Songs 2026" playlist.
 - **Blockers:** None.
 - **Next Steps:** None.
+
+## [2026-08-30] - [Icon Assignment] - [Direct]
+- **Goal:** Fetch and assign an elephant icon from yotoicons to the "Un Elefante se Balanceaba" track.
+- **Activity:**
+    - Downloaded the resized Noto Emoji 16x16 elephant icon (elephant.png).
+    - Uploaded the icon to the Yoto library (assigned ID: Jt7FK8QIlQeWjplp4L8pT5IUUw7Oz-3aFebfGvAFqSI).
+    - Edited track 12 of "My Songs 2026" to set its icon to the new elephant icon.
+- **Blockers:** Direct download from URL inside yoto icon upload failed due to Yoto Authorization headers sent to GitHub; bypassed by downloading locally via curl first.
+- **Next Steps:** None.
