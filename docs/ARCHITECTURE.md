@@ -24,6 +24,8 @@ The project follows a standard Go CLI layout:
 - **`pkg/yoto/`**: The Core API Client.
     - Wraps the Yoto HTTP API (unofficial/reverse-engineered).
     - **Models:** Defines `Card`, `Chapter`, `Track` structs mirroring the JSON response.
+    - **Passthrough:** An update *replaces* the card with the document it is sent, and the API says far more about a card than these structs model - cover art, playback config, a chapter's ambient light. So every model keeps the fields it does not understand and writes them back untouched (`passthrough.go`); without that, changing a track list also erased the card's cover image.
+    - **Two shapes for one thing:** A track's audio is written as `yoto:#<sha256>` and read back as a signed CDN URL carrying the same hash in a `#sha256=` fragment; an icon is written as `yoto:#<hash>` and read back as an https URL. `AudioSHA256` and `IconRef` reduce both to one form, which is what lets a track read from a card be recognised as the audio being uploaded.
     - **Auth:** Handles OAuth2 Device Flow and Token Refresh.
     - **Upload:** Manages the multi-step upload (Get URL -> PUT -> Poll Transcode).
     - *Zero dependency on CLI logic.* Can be imported by other Go programs.
@@ -34,7 +36,6 @@ The project follows a standard Go CLI layout:
     - **`playlist_utils.go`**: Logic for reordering/renumbering playlist arrays.
 
 - **`internal/processing/`**: Audio processing.
-    - Wraps `ffmpeg` calls for normalization.
     - Wraps `yt-dlp` for downloading audio from external URLs.
 
 - **`internal/config/`**: Configuration management.
@@ -43,16 +44,16 @@ The project follows a standard Go CLI layout:
 ## 3. Key Workflows
 
 ### Import (Web to Yoto)
-1.  **Download:** `cmd/import` calls `yt-dlp` to fetch audio (best quality) -> converts to MP3.
-2.  **Normalize:** Runs `ffmpeg` on the downloaded file.
-3.  **Upload/Add:** Reuses the standard Upload -> Transcode -> Add Track flow.
+1.  **Download:** `cmd/import` calls `yt-dlp` to fetch audio (best quality) -> converts to MP3. A URL holding several items (a playlist, an RSS feed) yields one file per item.
+2.  **Upload/Add:** Hands the files to `actions.AddTracks`, which is the same path `add` and `create` use. With `--sync` the playlist is made to match the URL rather than added to. The download happens first either way, so a sync saves sending the audio but not downloading it.
 
 ### Upload & Creation
-1.  **Scan:** `cmd/create` scans a local directory.
-2.  **Normalize:** `internal/processing` runs `ffmpeg` to target -16 LUFS.
-3.  **Upload:** Files are uploaded in parallel (concurrency limit: 5) to Yoto's S3 bucket.
-4.  **Transcode:** The CLI polls the API until Yoto finishes processing.
-5.  **Create:** A `POST /content` request creates the card with the new track references.
+Every command that puts audio on a card goes through `actions.AddTracks`:
+1.  **Resolve the playlist:** Once per batch, `GET /card/family/library` then `GET /content/{id}`, or a new card if the name is not there. Doing this once is what stops a batch of uploads from each creating its own copy of the same playlist.
+2.  **Upload:** Every file is hashed and offered to Yoto concurrently (concurrency limit: 10). Yoto answers with no upload URL when it already holds audio with that SHA-256, so a file it has seen before costs a hash and a round trip but no bytes; the rest go up to Yoto's S3 bucket. This is the only concurrent step, and it never touches the card.
+3.  **Transcode:** The CLI polls the API until Yoto finishes processing. Yoto normalizes the audio to -16 LUFS and re-encodes it to Opus here, which is why the CLI does no audio processing of its own.
+4.  **Merge:** `addChapters` works out the new chapter list. Ordinarily the uploads are inserted at the requested position, or appended. With `--sync` the list becomes exactly the uploads, except that a chapter whose audio the card already had is presented the way it was - its icon, and anything else the app recorded there - while an icon named on the command line still wins. Chapters are matched by the SHA-256 of their transcoded audio, taken from `trackUrl` in whichever of its two shapes the chapter came in, so a renamed track keeps its icon and a track republished with different audio counts as new. Matching after the upload rather than before it is what makes the hash available; the upload is cheap for audio Yoto already holds.
+5.  **Write:** One `PUT`/`POST /content` writes the whole chapter list at once, so concurrent uploads cannot drop each other's tracks. Nothing is written unless every upload succeeded.
 
 ### Authentication
 Uses the **OAuth2 Device Authorization Flow**.

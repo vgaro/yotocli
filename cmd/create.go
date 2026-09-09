@@ -6,17 +6,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 
-	"github.com/vgaro/yotocli/internal/processing"
-	"github.com/vgaro/yotocli/internal/utils"
-	"github.com/vgaro/yotocli/pkg/yoto"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
+	"github.com/vgaro/yotocli/internal/actions"
 )
 
 var (
 	createName        string
+	createSync        bool
 	createNoNormalize bool
 )
 
@@ -24,15 +21,21 @@ var createCmd = &cobra.Command{
 	Use:   "create <directory>",
 	Short: "Create a new playlist from a directory of audio files",
 	Long: `Scans a directory for audio files (MP3, M4A, AAC, WAV), uploads them in parallel,
-and creates a brand new Yoto playlist. Files are sorted alphabetically by filename.`,
+and creates a Yoto playlist. Files are sorted alphabetically by filename.
+
+If a playlist of that name already exists the files are appended to it, or with
+--sync the playlist is made to match the directory instead: files it already has
+keep the icons they were given and are not sent again, new files are added, and
+tracks that are no longer in the directory are removed. Files are matched by their
+audio rather than their name, so a renamed file keeps its icon.`,
 	Example: `  # Create a playlist from a folder
   yoto create ./audiobooks/dinosaur-expert
 
   # Create a playlist with a custom name
   yoto create ./audiobooks/dinosaur-expert --name "All About Dinosaurs"
 
-  # Create quickly without normalization
-  yoto create ./my-podcasts --no-normalize`,
+  # Bring an existing playlist back in line with the folder
+  yoto create ./audiobooks/dinosaur-expert --sync`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir := args[0]
@@ -58,106 +61,31 @@ and creates a brand new Yoto playlist. Files are sorted alphabetically by filena
 			return fmt.Errorf("no audio files found in %s", dir)
 		}
 
-		fmt.Printf("Creating playlist '%s' with %d tracks...\n", createName, len(audioFiles))
+		verb := "Creating"
+		if createSync {
+			verb = "Syncing"
+		}
+		fmt.Printf("%s playlist '%s' with %d tracks...\n", verb, createName, len(audioFiles))
 
-		// Parallel upload with limit
-		g := new(errgroup.Group)
-		g.SetLimit(5) // Limit concurrency
-
-		tracks := make([]yoto.Track, len(audioFiles))
-		var mu sync.Mutex
-
+		// No titles: these are files the user named themselves, so the file
+		// name is the best guess we have.
+		tracks := make([]actions.Track, len(audioFiles))
 		for i, path := range audioFiles {
-			i, path := i, path // capture for goroutine
-			g.Go(func() error {
-				uploadPath := path
-				if !createNoNormalize {
-					fmt.Printf("[%d/%d] Normalizing %s...\n", i+1, len(audioFiles), filepath.Base(path))
-					normPath, err := processing.NormalizeAudio(path)
-					if err != nil {
-						fmt.Printf("[%d/%d] Warning: Normalization failed for %s: %v. Using original.\n", i+1, len(audioFiles), filepath.Base(path), err)
-					} else {
-						uploadPath = normPath
-						defer os.Remove(normPath)
-					}
-				}
-
-				fmt.Printf("[%d/%d] Uploading %s...\n", i+1, len(audioFiles), filepath.Base(path))
-				
-				upData, err := apiClient.GetUploadURL()
-				if err != nil {
-					return err
-				}
-
-				if err := apiClient.UploadFile(uploadPath, upData.Upload.UploadURL); err != nil {
-					return err
-				}
-
-				transData, err := apiClient.PollTranscode(upData.Upload.UploadID)
-				if err != nil {
-					return err
-				}
-
-				title := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-				
-				mu.Lock()
-				tracks[i] = yoto.Track{
-					Title:    title,
-					TrackURL: fmt.Sprintf("yoto:#%s", transData.TranscodedSha256),
-					Duration: transData.TranscodedInfo.Duration,
-					FileSize: transData.TranscodedInfo.FileSize,
-					Format:   transData.TranscodedInfo.Format,
-					Type:     "audio",
-					Display: yoto.Display{
-						Icon16x16: "yoto:#aUm9i3ex3qqAMYBv-i-O-pYMKuMJGICtR3Vhf289u2Q",
-					},
-				}
-				mu.Unlock()
-				fmt.Printf("[%d/%d] Transcoded: %s\n", i+1, len(audioFiles), title)
-				return nil
-			})
+			tracks[i] = actions.Track{Path: path}
 		}
 
-		if err := g.Wait(); err != nil {
-			return err
-		}
-
-		// Assemble chapters
-		chapters := make([]yoto.Chapter, len(tracks))
-		var totalDur, totalSize int
-		for i, t := range tracks {
-			chapters[i] = yoto.Chapter{
-				Title:    t.Title,
-				Duration: t.Duration,
-				Tracks:   []yoto.Track{t},
-				Display:  t.Display,
-			}
-			totalDur += t.Duration
-			totalSize += t.FileSize
-		}
-
-		newCard := &yoto.Card{
-			Title: createName,
-			Content: &yoto.Content{
-				Chapters: chapters,
-			},
-			Metadata: &yoto.Metadata{
-				Media: yoto.Media{
-					Duration: totalDur,
-					FileSize: totalSize,
-				},
-			},
-		}
-		utils.ReorderPlaylist(newCard)
-
-		// Create playlist via POST /content
-		// Note: pkg/yoto/client.go doesn't have CreateCard yet, adding it.
-		return apiClient.CreateCard(newCard)
+		return actions.AddTracks(apiClient, createName, tracks, createSync, func(format string, args ...interface{}) {
+			fmt.Printf(format+"\n", args...)
+		})
 	},
 }
 
 func init() {
 	createCmd.Flags().StringVarP(&createName, "name", "n", "", "Name of the playlist (defaults to directory name)")
+	createCmd.Flags().BoolVar(&createSync, "sync", false, "Make an existing playlist match the directory instead of appending to it: keeps the icons of tracks it already has, adds new ones, removes the rest")
 	createCmd.Flags().BoolVar(&createNoNormalize, "no-normalize", false, "Disable audio normalization")
+	if err := createCmd.Flags().MarkDeprecated("no-normalize", noNormalizeDeprecated); err != nil {
+		panic(err)
+	}
 	rootCmd.AddCommand(createCmd)
 }

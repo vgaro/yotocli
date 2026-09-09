@@ -82,12 +82,12 @@ Updates the metadata of a playlist.
 - **Input:** `playlist_id` (string), `title` (optional), `description` (optional), `author` (optional)
 
 ### `import_from_url`
-Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
-- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional)
+Downloads audio from a URL (e.g., YouTube, or a podcast RSS feed) and adds it to a playlist. A URL holding several items - a playlist or a feed - adds every item to the same playlist, uploading them concurrently.
+- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `sync` (boolean, optional - make the playlist match the URL instead of appending to it: tracks already on it keep their icons and their audio is not sent again, new ones are added, and tracks the URL no longer lists are removed), `no_normalize` (boolean, optional - deprecated, ignored: Yoto normalizes audio itself)
 
 ### `add_track`
 Uploads a local audio file to a playlist.
-- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `icon_id` (string, optional), `no_normalize` (boolean, optional)
+- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `title` (string, optional - defaults to the file name), `icon_id` (string, optional), `no_normalize` (boolean, optional - deprecated, ignored)
 
 ### `set_track_icon`
 Sets the icon for a specific track in a playlist.
@@ -131,6 +131,7 @@ Pauses playback on a device.
 1.  **Create:** `create_playlist(title="My Story", author="Me")`
 2.  **Add Content:**
     *   From YouTube: `import_from_url(url="...", playlist_name="My Story")`
+    *   Refreshing a podcast: `import_from_url(url="...", playlist_name="Arthur", sync=true)`
     *   From Local File: `add_track(file_path="/tmp/story.mp3", playlist_name="My Story")`
 3.  **Add Icon:**
     *   Upload: `id = upload_icon(file_path="https://.../icon.png")`
@@ -145,7 +146,7 @@ Pauses playback on a device.
 -   **"Unauthorized" Error:** The access token has expired and the server hasn't refreshed it yet, or the configuration is stale.
     *   **Fix:** Run `yoto ls` in your terminal to force a refresh, then **restart the MCP server** (e.g., restart Claude Desktop).
 -   **"Track not found" / "Invalid index":** Remember that `track_index` is 1-based (matches the Yoto app UI), not 0-based.
--   **"yt-dlp not found":** The `import_from_url` tool requires `yt-dlp` to be installed on the host system.
+-   **"yt-dlp not found":** The `import_from_url` tool requires `yt-dlp` (and `ffmpeg`, which yt-dlp uses to convert audio) to be installed on the host system.
 
 ## Example Prompts
 

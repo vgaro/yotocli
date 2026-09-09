@@ -12,6 +12,11 @@ var (
 	addIcon        string
 )
 
+// noNormalizeDeprecated explains --no-normalize to anyone still passing it. The
+// flag used to skip a local ffmpeg pass; Yoto's transcoder normalizes every
+// upload on its own, so there is no local pass left to skip.
+const noNormalizeDeprecated = "audio is normalized by Yoto during transcoding, so this flag does nothing"
+
 var addCmd = &cobra.Command{
 	Use:   "add <playlist[/position]> <file>",
 	Short: "Add a track to a playlist",
@@ -22,16 +27,18 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
   yoto add "Bedtime Stories" ./new-chapter.mp3
 
   # Insert a track at the beginning (position 1)
-  yoto add "Bedtime/1" ./intro.mp3
-
-  # Add without audio normalization
-  yoto add "Bedtime" ./pre-processed.mp3 --no-normalize`,
+  yoto add "Bedtime/1" ./intro.mp3`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		playlistArg := args[0]
 		filePath := args[1]
 
-		return actions.AddTrack(apiClient, playlistArg, filePath, addIcon, !addNoNormalize, func(format string, args ...interface{}) {
+		// No title: for a file the user picked, the file name is the best
+		// guess we have.
+		// Never a sync: adding one file is the opposite of making a playlist
+		// match one file.
+		track := actions.Track{Path: filePath, IconID: addIcon}
+		return actions.AddTracks(apiClient, playlistArg, []actions.Track{track}, false, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},
@@ -39,6 +46,9 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 
 func init() {
 	addCmd.Flags().BoolVar(&addNoNormalize, "no-normalize", false, "Disable audio normalization")
+	if err := addCmd.Flags().MarkDeprecated("no-normalize", noNormalizeDeprecated); err != nil {
+		panic(err)
+	}
 	addCmd.Flags().StringVar(&addIcon, "icon", "", "Icon ID (hash or yoto:#...) to use for the track")
 	rootCmd.AddCommand(addCmd)
 }
