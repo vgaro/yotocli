@@ -40,7 +40,7 @@ var mcpCmd = &cobra.Command{
 		mcp.AddTool(s, &mcp.Tool{Name: "create_playlist", Description: "Create a new empty playlist"}, createPlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "delete_playlist", Description: "Delete a playlist by ID"}, deletePlaylistHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "edit_playlist", Description: "Edit playlist metadata (title, author, description)"}, editPlaylistHandler)
-		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube, etc) and add to playlist"}, importFromURLHandler)
+		mcp.AddTool(s, &mcp.Tool{Name: "import_from_url", Description: "Download audio from a URL (YouTube video or playlist, podcast RSS feed, etc) and add to playlist. A URL holding several items adds all of them."}, importFromURLHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "add_track", Description: "Upload a local audio file to a playlist"}, addTrackHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "set_track_icon", Description: "Set the icon for a specific track"}, setTrackIconHandler)
 		mcp.AddTool(s, &mcp.Tool{Name: "upload_icon", Description: "Upload a custom icon"}, uploadIconHandler)

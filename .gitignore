@@ -1,6 +1,8 @@
 # Binaries
-yoto
-yoto.exe
+# Anchored to the repo root: unanchored "yoto" also matched the pkg/yoto
+# directory, so nothing new could be added under it.
+/yoto
+/yoto.exe
 
 # Config
 config.yaml

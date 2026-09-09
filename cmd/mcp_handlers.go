@@ -174,7 +174,7 @@ func editPlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input Ed
 type ImportFromURLInput struct {
 	URL          string `json:"url" jsonschema:"The URL of the audio/video to download (e.g., YouTube)"`
 	PlaylistName string `json:"playlist_name,omitempty" jsonschema:"The name of the playlist to add to (creates new if empty or not found)"`
-	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Deprecated and ignored: Yoto normalizes audio during transcoding"`
 }
 
 func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input ImportFromURLInput) (*mcp.CallToolResult, SimpleOutput, error) {
@@ -183,7 +183,7 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, !input.NoNormalize, logger)
+	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
@@ -194,8 +194,9 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 type AddTrackInput struct {
 	FilePath     string `json:"file_path" jsonschema:"The path to the local audio file to upload"`
 	PlaylistName string `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
+	Title        string `json:"title,omitempty" jsonschema:"Optional track title (defaults to the file name without its extension)"`
 	IconID       string `json:"icon_id,omitempty" jsonschema:"Optional icon ID (e.g. from upload_icon)"`
-	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Deprecated and ignored: Yoto normalizes audio during transcoding"`
 }
 
 func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTrackInput) (*mcp.CallToolResult, SimpleOutput, error) {
@@ -204,7 +205,8 @@ func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTra
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.IconID, !input.NoNormalize, logger)
+	track := actions.Track{Path: input.FilePath, Title: input.Title, IconID: input.IconID}
+	err := actions.AddTracks(apiClient, input.PlaylistName, []actions.Track{track}, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}

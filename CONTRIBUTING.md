@@ -5,7 +5,7 @@ Thank you for helping improve YotoCLI!
 ## Development Setup
 
 1. **Go:** Ensure you have Go 1.22+ installed.
-2. **FFmpeg:** Install `ffmpeg` and `ffprobe` for audio features.
+2. **yt-dlp and FFmpeg:** Needed by `yoto import` and its tests. Audio is normalized by Yoto during transcoding, so nothing else touches ffmpeg.
 3. **Dependencies:** Run `go mod download`.
 
 ## Running Tests

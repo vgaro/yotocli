@@ -34,7 +34,6 @@ The project follows a standard Go CLI layout:
     - **`playlist_utils.go`**: Logic for reordering/renumbering playlist arrays.
 
 - **`internal/processing/`**: Audio processing.
-    - Wraps `ffmpeg` calls for normalization.
     - Wraps `yt-dlp` for downloading audio from external URLs.
 
 - **`internal/config/`**: Configuration management.
@@ -43,16 +42,15 @@ The project follows a standard Go CLI layout:
 ## 3. Key Workflows
 
 ### Import (Web to Yoto)
-1.  **Download:** `cmd/import` calls `yt-dlp` to fetch audio (best quality) -> converts to MP3.
-2.  **Normalize:** Runs `ffmpeg` on the downloaded file.
-3.  **Upload/Add:** Reuses the standard Upload -> Transcode -> Add Track flow.
+1.  **Download:** `cmd/import` calls `yt-dlp` to fetch audio (best quality) -> converts to MP3. A URL holding several items (a playlist, an RSS feed) yields one file per item.
+2.  **Upload/Add:** Hands the files to `actions.AddTracks`, which is the same path `add` and `create` use.
 
 ### Upload & Creation
-1.  **Scan:** `cmd/create` scans a local directory.
-2.  **Normalize:** `internal/processing` runs `ffmpeg` to target -16 LUFS.
-3.  **Upload:** Files are uploaded in parallel (concurrency limit: 5) to Yoto's S3 bucket.
-4.  **Transcode:** The CLI polls the API until Yoto finishes processing.
-5.  **Create:** A `POST /content` request creates the card with the new track references.
+Every command that puts audio on a card goes through `actions.AddTracks`:
+1.  **Resolve the playlist:** Once per batch, `GET /card/family/library` then `GET /content/{id}`, or a new card if the name is not there. Doing this once is what stops a batch of uploads from each creating its own copy of the same playlist.
+2.  **Upload:** Files are uploaded concurrently (concurrency limit: 10) to Yoto's S3 bucket. This is the only concurrent step, and it never touches the card.
+3.  **Transcode:** The CLI polls the API until Yoto finishes processing. Yoto normalizes the audio to -16 LUFS and re-encodes it to Opus here, which is why the CLI does no audio processing of its own.
+4.  **Write:** One `PUT`/`POST /content` adds every new chapter at once, so concurrent uploads cannot drop each other's tracks. Nothing is written unless every upload succeeded.
 
 ### Authentication
 Uses the **OAuth2 Device Authorization Flow**.
