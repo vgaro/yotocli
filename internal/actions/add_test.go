@@ -58,38 +58,50 @@ func TestTrackTitle(t *testing.T) {
 	}
 }
 
-// chapter builds one chapter the way an upload leaves it: an audio reference the
-// card matches on, and the same icon on the chapter and its track.
-func chapter(title string, audio string, icon string) yoto.Chapter {
+// chapter builds one chapter: the audio named however the caller says, and the
+// same icon on the chapter and its only track.
+func chapter(title string, trackURL string, icon string) yoto.Chapter {
 	return yoto.Chapter{
 		Title:   title,
 		Display: yoto.Display{Icon16x16: icon},
 		Tracks: []yoto.Track{{
 			Title:    title,
-			TrackURL: "yoto:#" + audio,
+			TrackURL: trackURL,
 			Display:  yoto.Display{Icon16x16: icon},
 		}},
 	}
 }
 
-// uploaded is what AddTracks has after uploading: distinct audio per title, and
-// the default icon, since no caller named one.
+// uploaded is what AddTracks holds after uploading: the audio named as
+// "yoto:#<hash>", one hash per title, and the default icon, since no caller named
+// one.
 func uploaded(titles ...string) []yoto.Chapter {
 	chapters := make([]yoto.Chapter, 0, len(titles))
 	for _, title := range titles {
-		chapters = append(chapters, chapter(title, "audio-"+title, defaultIcon))
+		chapters = append(chapters, chapter(title, "yoto:#audio-"+title, defaultIcon))
 	}
 	return chapters
 }
 
-// decorated is what a card looks like after someone has picked icons for it in
-// the Yoto app, which is what a sync has to preserve.
+// decorated is what a card looks like once it has been read back from the API and
+// someone has picked icons for it in the Yoto app. The shapes are the point: the
+// same audio that was written as "yoto:#<hash>" reads back as a signed CDN URL
+// carrying the hash in its fragment, and an icon reads back as an https URL.
+// Treating those as different is what made a sync reset every icon.
 func decorated(titles ...string) []yoto.Chapter {
 	chapters := make([]yoto.Chapter, 0, len(titles))
 	for _, title := range titles {
-		chapters = append(chapters, chapter(title, "audio-"+title, "yoto:#icon-"+title))
+		chapters = append(chapters, chapter(title, signedURL("audio-"+title), iconURL("icon-"+title)))
 	}
 	return chapters
+}
+
+func signedURL(audio string) string {
+	return "https://secure-media.yotoplay.com/prefix~/" + audio + "?Expires=1788994229&Signature=abc__#sha256=" + audio
+}
+
+func iconURL(icon string) string {
+	return "https://card-content.yotoplay.com/prefix~/" + icon
 }
 
 func chapterTitles(chapters []yoto.Chapter) []string {
@@ -183,8 +195,10 @@ func TestAddChapters_Sync(t *testing.T) {
 		got := addChapters(existing, uploaded("Ep 1", "Ep 3"), -1, true)
 
 		assertTitles(t, got, []string{"Ep 1", "Ep 3"})
-		// Both survivors were already on the card, so both keep their icons.
-		for i, want := range []string{"yoto:#icon-Ep 1", "yoto:#icon-Ep 3"} {
+		// Both survivors were already on the card, so both keep their icons. The
+		// icon is still the https URL it was read back as; UpdateCard puts it
+		// back into "yoto:#<hash>" form on the way out.
+		for i, want := range []string{iconURL("icon-Ep 1"), iconURL("icon-Ep 3")} {
 			if got[i].Display.Icon16x16 != want {
 				t.Errorf("chapter %d icon = %q, want %q", i, got[i].Display.Icon16x16, want)
 			}
@@ -204,7 +218,7 @@ func TestAddChapters_Sync(t *testing.T) {
 		if got[0].Display.Icon16x16 != defaultIcon {
 			t.Errorf("the new episode's icon = %q, want the default", got[0].Display.Icon16x16)
 		}
-		if got[1].Display.Icon16x16 != "yoto:#icon-Ep 1" {
+		if got[1].Display.Icon16x16 != iconURL("icon-Ep 1") {
 			t.Errorf("kept icon = %q, want the one on the card", got[1].Display.Icon16x16)
 		}
 	})
@@ -212,9 +226,9 @@ func TestAddChapters_Sync(t *testing.T) {
 	t.Run("a renamed episode keeps its icon", func(t *testing.T) {
 		// Matching on audio rather than on the title is what makes this work: the
 		// feed has retitled the episode, but it is the same audio.
-		existing := []yoto.Chapter{chapter("Ep 1", "audio-x", "yoto:#icon-custom")}
+		existing := []yoto.Chapter{chapter("Ep 1", signedURL("audio-x"), "yoto:#icon-custom")}
 
-		got := addChapters(existing, []yoto.Chapter{chapter("Episode One", "audio-x", defaultIcon)}, -1, true)
+		got := addChapters(existing, []yoto.Chapter{chapter("Episode One", "yoto:#audio-x", defaultIcon)}, -1, true)
 
 		assertTitles(t, got, []string{"Episode One"})
 		if got[0].Display.Icon16x16 != "yoto:#icon-custom" {
@@ -223,9 +237,9 @@ func TestAddChapters_Sync(t *testing.T) {
 	})
 
 	t.Run("an episode republished with different audio counts as new", func(t *testing.T) {
-		existing := []yoto.Chapter{chapter("Ep 1", "audio-old", "yoto:#icon-custom")}
+		existing := []yoto.Chapter{chapter("Ep 1", signedURL("audio-old"), "yoto:#icon-custom")}
 
-		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "audio-new", defaultIcon)}, -1, true)
+		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "yoto:#audio-new", defaultIcon)}, -1, true)
 
 		if got[0].Display.Icon16x16 != defaultIcon {
 			t.Errorf("icon = %q, want the default: this is not the audio the icon was chosen for", got[0].Display.Icon16x16)
@@ -238,7 +252,7 @@ func TestAddChapters_Sync(t *testing.T) {
 	t.Run("an icon named by the caller wins", func(t *testing.T) {
 		existing := decorated("Ep 1")
 
-		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "audio-Ep 1", "yoto:#chosen")}, -1, true)
+		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "yoto:#audio-Ep 1", "yoto:#chosen")}, -1, true)
 
 		if got[0].Display.Icon16x16 != "yoto:#chosen" {
 			t.Errorf("icon = %q, want the one the caller named", got[0].Display.Icon16x16)
@@ -271,7 +285,7 @@ func TestAddChapters_Sync(t *testing.T) {
 
 		addChapters(existing, uploaded("Ep 1"), -1, true)
 
-		if existing[0].Display.Icon16x16 != "yoto:#icon-Ep 1" {
+		if existing[0].Display.Icon16x16 != iconURL("icon-Ep 1") {
 			t.Errorf("the chapter on the card was modified: %q", existing[0].Display.Icon16x16)
 		}
 	})

@@ -229,17 +229,18 @@ func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, bool, error)
 //
 // With sync the result is exactly the new chapters - anything the source no
 // longer lists is gone - except that a chapter whose audio is already on the card
-// inherits the icon it had there. That is the point of syncing: an icon chosen in
-// the Yoto app, or set by `yoto icon`, is data no podcast feed or directory of
-// files knows about, and rebuilding the chapter from the upload alone would reset
-// it to the default. An icon the caller named explicitly is an instruction rather
-// than a side effect, so it wins over the one on the card.
+// keeps how that chapter was presented, its icon above all. That is the point of
+// syncing: an icon chosen in the Yoto app, or set by `yoto icon`, is data no
+// podcast feed or directory of files knows about, and rebuilding the chapter from
+// the upload alone would reset it to the default. An icon the caller named
+// explicitly is an instruction rather than a side effect, so it wins over the one
+// on the card.
 //
-// Audio is what the two sides are matched on: trackUrl is "yoto:#" plus the
-// SHA-256 of the transcoded audio, so two chapters carrying the same reference
-// really are the same audio, whatever they are titled. That makes a renamed
-// episode keep its icon, and an episode republished with different audio count as
-// new, which matching on titles got backwards in both directions.
+// Audio is what the two sides are matched on, by the SHA-256 of the transcoded
+// file: two chapters with the same hash really are the same audio, whatever they
+// are titled. That makes a renamed episode keep its icon, and an episode
+// republished with different audio count as new, which matching on titles got
+// backwards in both directions.
 func addChapters(existing []yoto.Chapter, added []yoto.Chapter, position int, sync bool) []yoto.Chapter {
 	if !sync {
 		if position < 0 || position >= len(existing) {
@@ -253,33 +254,41 @@ func addChapters(existing []yoto.Chapter, added []yoto.Chapter, position int, sy
 		return merged
 	}
 
-	icons := make(map[string]string, len(existing))
+	previous := make(map[string]yoto.Chapter, len(existing))
 	for _, chapter := range existing {
-		if audio := audioRef(chapter); audio != "" {
-			icons[audio] = chapter.Display.Icon16x16
+		if audio := audioSHA(chapter); audio != "" {
+			previous[audio] = chapter
 		}
 	}
 
 	synced := make([]yoto.Chapter, len(added))
 	for i, chapter := range added {
 		synced[i] = chapter
-		if chapter.Display.Icon16x16 != defaultIcon {
-			continue // the caller asked for this icon
+
+		prev, ok := previous[audioSHA(chapter)]
+		if !ok {
+			continue // audio the card did not have: nothing to carry over
 		}
-		if icon := icons[audioRef(chapter)]; icon != "" {
-			synced[i] = withIcon(chapter, icon)
+		synced[i] = chapter.InheritFrom(prev)
+
+		// An icon the caller named is an instruction, so it goes back on after
+		// the inherited one. IconRef is what makes the comparison meaningful:
+		// the same icon reads back from the API as an https URL.
+		if icon := yoto.IconRef(chapter.Display.Icon16x16); icon != "" && icon != defaultIcon {
+			synced[i] = withIcon(synced[i], icon)
 		}
 	}
 	return synced
 }
 
-// audioRef identifies the audio a chapter plays: "yoto:#" plus the SHA-256 of the
-// transcoded file. Empty for a chapter with no tracks, which never matches.
-func audioRef(chapter yoto.Chapter) string {
+// audioSHA identifies the audio a chapter plays, whether the chapter was just
+// uploaded or read back from a card. Empty for a chapter with no tracks, which
+// matches nothing.
+func audioSHA(chapter yoto.Chapter) string {
 	if len(chapter.Tracks) == 0 {
 		return ""
 	}
-	return chapter.Tracks[0].TrackURL
+	return yoto.AudioSHA256(chapter.Tracks[0].TrackURL)
 }
 
 // withIcon is a copy of a chapter showing a different icon. The tracks are copied
