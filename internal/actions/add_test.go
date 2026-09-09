@@ -58,28 +58,65 @@ func TestTrackTitle(t *testing.T) {
 	}
 }
 
-// chapters builds a card holding one chapter per title, as the shape the insert
-// tests care about.
-func chapters(titles ...string) *yoto.Card {
-	card := &yoto.Card{Content: &yoto.Content{}}
-	for _, title := range titles {
-		card.Content.Chapters = append(card.Content.Chapters, yoto.Chapter{Title: title})
+// chapter builds one chapter the way an upload leaves it: an audio reference the
+// card matches on, and the same icon on the chapter and its track.
+func chapter(title string, audio string, icon string) yoto.Chapter {
+	return yoto.Chapter{
+		Title:   title,
+		Display: yoto.Display{Icon16x16: icon},
+		Tracks: []yoto.Track{{
+			Title:    title,
+			TrackURL: "yoto:#" + audio,
+			Display:  yoto.Display{Icon16x16: icon},
+		}},
 	}
-	return card
 }
 
-func chapterTitles(card *yoto.Card) []string {
+// uploaded is what AddTracks has after uploading: distinct audio per title, and
+// the default icon, since no caller named one.
+func uploaded(titles ...string) []yoto.Chapter {
+	chapters := make([]yoto.Chapter, 0, len(titles))
+	for _, title := range titles {
+		chapters = append(chapters, chapter(title, "audio-"+title, defaultIcon))
+	}
+	return chapters
+}
+
+// decorated is what a card looks like after someone has picked icons for it in
+// the Yoto app, which is what a sync has to preserve.
+func decorated(titles ...string) []yoto.Chapter {
+	chapters := make([]yoto.Chapter, 0, len(titles))
+	for _, title := range titles {
+		chapters = append(chapters, chapter(title, "audio-"+title, "yoto:#icon-"+title))
+	}
+	return chapters
+}
+
+func chapterTitles(chapters []yoto.Chapter) []string {
 	var titles []string
-	for _, chapter := range card.Content.Chapters {
+	for _, chapter := range chapters {
 		titles = append(titles, chapter.Title)
 	}
 	return titles
 }
 
-func TestInsertChapters(t *testing.T) {
+func assertTitles(t *testing.T, got []yoto.Chapter, want []string) {
+	t.Helper()
+	titles := chapterTitles(got)
+	if len(titles) != len(want) {
+		t.Fatalf("chapters = %v, want %v", titles, want)
+	}
+	for i := range titles {
+		if titles[i] != want[i] {
+			t.Fatalf("chapters = %v, want %v", titles, want)
+		}
+	}
+}
+
+func TestAddChapters(t *testing.T) {
 	tests := []struct {
 		name     string
-		card     *yoto.Card
+		existing []string
 		added    []string
 		position int
 		want     []string
@@ -88,70 +125,156 @@ func TestInsertChapters(t *testing.T) {
 			// An import with no position asked for: the batch goes on the end,
 			// in the order it was given.
 			name:     "append keeps the order of the batch",
-			card:     chapters("one", "two"),
+			existing: []string{"one", "two"},
 			added:    []string{"three", "four"},
 			position: -1,
 			want:     []string{"one", "two", "three", "four"},
 		},
 		{
 			name:     "insert at the front",
-			card:     chapters("one", "two"),
+			existing: []string{"one", "two"},
 			added:    []string{"intro", "warning"},
 			position: 0,
 			want:     []string{"intro", "warning", "one", "two"},
 		},
 		{
 			name:     "insert in the middle",
-			card:     chapters("one", "two", "three"),
+			existing: []string{"one", "two", "three"},
 			added:    []string{"inserted"},
 			position: 1,
 			want:     []string{"one", "inserted", "two", "three"},
 		},
 		{
-			// "Name/9" against a card with three chapters: past the end is an
+			// "Name/9" against a card with two chapters: past the end is an
 			// append rather than an error.
 			name:     "a position past the end appends",
-			card:     chapters("one", "two"),
+			existing: []string{"one", "two"},
 			added:    []string{"three"},
 			position: 8,
 			want:     []string{"one", "two", "three"},
 		},
 		{
 			name:     "insert into an empty playlist",
-			card:     chapters(),
+			existing: nil,
 			added:    []string{"one", "two"},
 			position: 0,
 			want:     []string{"one", "two"},
-		},
-		{
-			name:     "a card with no content at all",
-			card:     &yoto.Card{},
-			added:    []string{"one"},
-			position: -1,
-			want:     []string{"one"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			added := make([]yoto.Chapter, 0, len(tt.added))
-			for _, title := range tt.added {
-				added = append(added, yoto.Chapter{Title: title})
-			}
+			existing := uploaded(tt.existing...)
+			got := addChapters(existing, uploaded(tt.added...), tt.position, false)
 
-			insertChapters(tt.card, added, tt.position)
+			assertTitles(t, got, tt.want)
 
-			got := chapterTitles(tt.card)
-			if len(got) != len(tt.want) {
-				t.Fatalf("got %v, want %v", got, tt.want)
-			}
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Fatalf("got %v, want %v", got, tt.want)
-				}
-			}
+			// The card's own slice must not be written through, since it is
+			// still the caller's view of what was there before.
+			assertTitles(t, existing, tt.existing)
 		})
 	}
+}
+
+func TestAddChapters_Sync(t *testing.T) {
+	t.Run("drops what the source no longer lists", func(t *testing.T) {
+		existing := decorated("Ep 1", "Ep 2", "Ep 3")
+
+		got := addChapters(existing, uploaded("Ep 1", "Ep 3"), -1, true)
+
+		assertTitles(t, got, []string{"Ep 1", "Ep 3"})
+		// Both survivors were already on the card, so both keep their icons.
+		for i, want := range []string{"yoto:#icon-Ep 1", "yoto:#icon-Ep 3"} {
+			if got[i].Display.Icon16x16 != want {
+				t.Errorf("chapter %d icon = %q, want %q", i, got[i].Display.Icon16x16, want)
+			}
+			if got[i].Tracks[0].Display.Icon16x16 != want {
+				t.Errorf("chapter %d track icon = %q, want %q", i, got[i].Tracks[0].Display.Icon16x16, want)
+			}
+		}
+	})
+
+	t.Run("a new episode among old ones", func(t *testing.T) {
+		existing := decorated("Ep 1", "Ep 2")
+
+		// A feed listing newest first.
+		got := addChapters(existing, uploaded("Ep 3", "Ep 1", "Ep 2"), -1, true)
+
+		assertTitles(t, got, []string{"Ep 3", "Ep 1", "Ep 2"})
+		if got[0].Display.Icon16x16 != defaultIcon {
+			t.Errorf("the new episode's icon = %q, want the default", got[0].Display.Icon16x16)
+		}
+		if got[1].Display.Icon16x16 != "yoto:#icon-Ep 1" {
+			t.Errorf("kept icon = %q, want the one on the card", got[1].Display.Icon16x16)
+		}
+	})
+
+	t.Run("a renamed episode keeps its icon", func(t *testing.T) {
+		// Matching on audio rather than on the title is what makes this work: the
+		// feed has retitled the episode, but it is the same audio.
+		existing := []yoto.Chapter{chapter("Ep 1", "audio-x", "yoto:#icon-custom")}
+
+		got := addChapters(existing, []yoto.Chapter{chapter("Episode One", "audio-x", defaultIcon)}, -1, true)
+
+		assertTitles(t, got, []string{"Episode One"})
+		if got[0].Display.Icon16x16 != "yoto:#icon-custom" {
+			t.Errorf("icon = %q, want the one on the card", got[0].Display.Icon16x16)
+		}
+	})
+
+	t.Run("an episode republished with different audio counts as new", func(t *testing.T) {
+		existing := []yoto.Chapter{chapter("Ep 1", "audio-old", "yoto:#icon-custom")}
+
+		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "audio-new", defaultIcon)}, -1, true)
+
+		if got[0].Display.Icon16x16 != defaultIcon {
+			t.Errorf("icon = %q, want the default: this is not the audio the icon was chosen for", got[0].Display.Icon16x16)
+		}
+		if got[0].Tracks[0].TrackURL != "yoto:#audio-new" {
+			t.Errorf("audio = %q, want the new one", got[0].Tracks[0].TrackURL)
+		}
+	})
+
+	t.Run("an icon named by the caller wins", func(t *testing.T) {
+		existing := decorated("Ep 1")
+
+		got := addChapters(existing, []yoto.Chapter{chapter("Ep 1", "audio-Ep 1", "yoto:#chosen")}, -1, true)
+
+		if got[0].Display.Icon16x16 != "yoto:#chosen" {
+			t.Errorf("icon = %q, want the one the caller named", got[0].Display.Icon16x16)
+		}
+	})
+
+	t.Run("nothing on the card yet", func(t *testing.T) {
+		got := addChapters(nil, uploaded("Ep 1"), -1, true)
+
+		assertTitles(t, got, []string{"Ep 1"})
+		if got[0].Display.Icon16x16 != defaultIcon {
+			t.Errorf("icon = %q, want the default", got[0].Display.Icon16x16)
+		}
+	})
+
+	t.Run("a chapter on the card with no tracks", func(t *testing.T) {
+		// Nothing to match on, and nothing to crash on either.
+		existing := []yoto.Chapter{{Title: "Ep 1"}}
+
+		got := addChapters(existing, uploaded("Ep 1"), -1, true)
+
+		assertTitles(t, got, []string{"Ep 1"})
+		if got[0].Display.Icon16x16 != defaultIcon {
+			t.Errorf("icon = %q, want the default", got[0].Display.Icon16x16)
+		}
+	})
+
+	t.Run("inheriting an icon does not modify the card", func(t *testing.T) {
+		existing := decorated("Ep 1")
+
+		addChapters(existing, uploaded("Ep 1"), -1, true)
+
+		if existing[0].Display.Icon16x16 != "yoto:#icon-Ep 1" {
+			t.Errorf("the chapter on the card was modified: %q", existing[0].Display.Icon16x16)
+		}
+	})
 }
 
 func TestSetMediaTotals(t *testing.T) {

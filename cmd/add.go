@@ -35,8 +35,10 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 
 		// No title: for a file the user picked, the file name is the best
 		// guess we have.
+		// Never a sync: adding one file is the opposite of making a playlist
+		// match one file.
 		track := actions.Track{Path: filePath, IconID: addIcon}
-		return actions.AddTracks(apiClient, playlistArg, []actions.Track{track}, func(format string, args ...interface{}) {
+		return actions.AddTracks(apiClient, playlistArg, []actions.Track{track}, false, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},

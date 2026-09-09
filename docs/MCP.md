@@ -83,7 +83,7 @@ Updates the metadata of a playlist.
 
 ### `import_from_url`
 Downloads audio from a URL (e.g., YouTube, or a podcast RSS feed) and adds it to a playlist. A URL holding several items - a playlist or a feed - adds every item to the same playlist, uploading them concurrently.
-- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional - deprecated, ignored: Yoto normalizes audio itself)
+- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `sync` (boolean, optional - make the playlist match the URL instead of appending to it: tracks already on it keep their icons and their audio is not sent again, new ones are added, and tracks the URL no longer lists are removed), `no_normalize` (boolean, optional - deprecated, ignored: Yoto normalizes audio itself)
 
 ### `add_track`
 Uploads a local audio file to a playlist.
@@ -131,6 +131,7 @@ Pauses playback on a device.
 1.  **Create:** `create_playlist(title="My Story", author="Me")`
 2.  **Add Content:**
     *   From YouTube: `import_from_url(url="...", playlist_name="My Story")`
+    *   Refreshing a podcast: `import_from_url(url="...", playlist_name="Arthur", sync=true)`
     *   From Local File: `add_track(file_path="/tmp/story.mp3", playlist_name="My Story")`
 3.  **Add Icon:**
     *   Upload: `id = upload_icon(file_path="https://.../icon.png")`

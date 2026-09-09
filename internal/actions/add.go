@@ -35,6 +35,15 @@ type Track struct {
 // were given in. playlistQuery can be "Name" or "Name/Position"; a playlist that
 // doesn't exist is created.
 //
+// With syncPlaylist set, the playlist is made to match tracks instead of being
+// added to: tracks it already has are kept as they are, new ones are uploaded,
+// and anything on the card that tracks does not mention is removed. That is what
+// makes re-running an import of a podcast feed sensible - it picks up the new
+// episodes rather than adding a second copy of every old one - and keeping the
+// existing chapters is what preserves per-track work the source knows nothing
+// about, an icon set in the Yoto app most of all. A position cannot be combined
+// with sync, which replaces the whole playlist.
+//
 // The playlist is looked up once and written once, with the uploads in between
 // running concurrently. Looking it up once is what keeps a batch from creating
 // several copies of the same new playlist, and writing it once is what keeps
@@ -42,7 +51,7 @@ type Track struct {
 //
 // A failure in any upload abandons the whole batch: the card is only written
 // after every upload has succeeded, so a playlist is never left half filled in.
-func AddTracks(client *yoto.Client, playlistQuery string, tracks []Track, log Logger) error {
+func AddTracks(client *yoto.Client, playlistQuery string, tracks []Track, syncPlaylist bool, log Logger) error {
 	if log == nil {
 		log = func(s string, i ...interface{}) {}
 	}
@@ -63,6 +72,9 @@ func AddTracks(client *yoto.Client, playlistQuery string, tracks []Track, log Lo
 	if err != nil {
 		return err
 	}
+	if syncPlaylist && position >= 0 {
+		return fmt.Errorf("a playlist position cannot be used with sync, which replaces the whole playlist")
+	}
 
 	// Indexed rather than appended, so the card ends up in the order asked for
 	// regardless of which upload finishes first.
@@ -75,13 +87,19 @@ func AddTracks(client *yoto.Client, playlistQuery string, tracks []Track, log Lo
 			name := trackTitle(track.Title, track.Path)
 			logf("%sUploading %s...", progress(i, len(tracks)), name)
 
-			chapter, err := uploadChapter(client, track)
+			chapter, sent, err := uploadChapter(client, track)
 			if err != nil {
 				return fmt.Errorf("failed to add %q: %w", name, err)
 			}
 
 			chapters[i] = chapter
-			logf("%sUploaded %s", progress(i, len(tracks)), name)
+			if sent {
+				logf("%sUploaded %s", progress(i, len(tracks)), name)
+			} else {
+				// Worth saying, because it is the difference between a sync
+				// that re-sent a whole feed and one that only sent what was new.
+				logf("%sAlready on Yoto, nothing sent: %s", progress(i, len(tracks)), name)
+			}
 			return nil
 		})
 	}
@@ -89,7 +107,10 @@ func AddTracks(client *yoto.Client, playlistQuery string, tracks []Track, log Lo
 		return err
 	}
 
-	insertChapters(targetCard, chapters, position)
+	if targetCard.Content == nil {
+		targetCard.Content = &yoto.Content{}
+	}
+	targetCard.Content.Chapters = addChapters(targetCard.Content.Chapters, chapters, position, syncPlaylist)
 	utils.ReorderPlaylist(targetCard)
 	setMediaTotals(targetCard)
 
@@ -140,18 +161,21 @@ func findOrCreateCard(client *yoto.Client, playlistQuery string, log Logger) (*y
 // uploadChapter uploads one file and describes it as a chapter, without going
 // near the card. It is the only part of AddTracks that runs concurrently, and
 // it shares nothing but the client: each call gets its own upload ID from Yoto.
-func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, error) {
+//
+// The second return value says whether the file's bytes were actually sent, as
+// opposed to Yoto recognising its hash and answering from what it already had.
+func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, bool, error) {
 	hash, err := yoto.FileSHA256(track.Path)
 	if err != nil {
-		return yoto.Chapter{}, err
+		return yoto.Chapter{}, false, err
 	}
 
 	upData, err := client.GetUploadURL(hash, filepath.Base(track.Path))
 	if err != nil {
-		return yoto.Chapter{}, err
+		return yoto.Chapter{}, false, err
 	}
 	if upData.Upload.UploadID == "" {
-		return yoto.Chapter{}, fmt.Errorf("yoto returned no upload id for %s", track.Path)
+		return yoto.Chapter{}, false, fmt.Errorf("yoto returned no upload id for %s", track.Path)
 	}
 
 	// No upload URL means Yoto recognised the hash and already holds this audio,
@@ -161,15 +185,16 @@ func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, error) {
 	// Otherwise the file goes up exactly as it is on disk: Yoto's transcoder
 	// normalizes it (loudnorm to -16 LUFS) and re-encodes it to Opus on the way
 	// in, so anything done to the audio first would only be undone.
-	if upData.Upload.UploadURL != "" {
+	sent := upData.Upload.UploadURL != ""
+	if sent {
 		if err := client.UploadFile(track.Path, upData.Upload.UploadURL); err != nil {
-			return yoto.Chapter{}, err
+			return yoto.Chapter{}, false, err
 		}
 	}
 
 	transData, err := client.PollTranscode(upData.Upload.UploadID)
 	if err != nil {
-		return yoto.Chapter{}, err
+		return yoto.Chapter{}, sent, err
 	}
 
 	title := trackTitle(track.Title, track.Path)
@@ -192,28 +217,81 @@ func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, error) {
 		Duration: uploaded.Duration,
 		Tracks:   []yoto.Track{uploaded},
 		Display:  display,
-	}, nil
+	}, sent, nil
 }
 
-// insertChapters adds chapters to the card at position, keeping the order they
-// were given in. A position outside the card appends, which is what a query
-// without a position asks for.
-func insertChapters(card *yoto.Card, chapters []yoto.Chapter, position int) {
-	if card.Content == nil {
-		card.Content = &yoto.Content{}
+// addChapters works out what the card should hold once the newly uploaded
+// chapters are added to what it already had.
+//
+// Without sync the new chapters go in at position, which is what `yoto add` and
+// an ordinary `create` or `import` do; a position outside the card appends, which
+// is what a query with no position asks for.
+//
+// With sync the result is exactly the new chapters - anything the source no
+// longer lists is gone - except that a chapter whose audio is already on the card
+// inherits the icon it had there. That is the point of syncing: an icon chosen in
+// the Yoto app, or set by `yoto icon`, is data no podcast feed or directory of
+// files knows about, and rebuilding the chapter from the upload alone would reset
+// it to the default. An icon the caller named explicitly is an instruction rather
+// than a side effect, so it wins over the one on the card.
+//
+// Audio is what the two sides are matched on: trackUrl is "yoto:#" plus the
+// SHA-256 of the transcoded audio, so two chapters carrying the same reference
+// really are the same audio, whatever they are titled. That makes a renamed
+// episode keep its icon, and an episode republished with different audio count as
+// new, which matching on titles got backwards in both directions.
+func addChapters(existing []yoto.Chapter, added []yoto.Chapter, position int, sync bool) []yoto.Chapter {
+	if !sync {
+		if position < 0 || position >= len(existing) {
+			return append(append([]yoto.Chapter{}, existing...), added...)
+		}
+
+		merged := make([]yoto.Chapter, 0, len(existing)+len(added))
+		merged = append(merged, existing[:position]...)
+		merged = append(merged, added...)
+		merged = append(merged, existing[position:]...)
+		return merged
 	}
 
-	existing := card.Content.Chapters
-	if position < 0 || position >= len(existing) {
-		card.Content.Chapters = append(existing, chapters...)
-		return
+	icons := make(map[string]string, len(existing))
+	for _, chapter := range existing {
+		if audio := audioRef(chapter); audio != "" {
+			icons[audio] = chapter.Display.Icon16x16
+		}
 	}
 
-	merged := make([]yoto.Chapter, 0, len(existing)+len(chapters))
-	merged = append(merged, existing[:position]...)
-	merged = append(merged, chapters...)
-	merged = append(merged, existing[position:]...)
-	card.Content.Chapters = merged
+	synced := make([]yoto.Chapter, len(added))
+	for i, chapter := range added {
+		synced[i] = chapter
+		if chapter.Display.Icon16x16 != defaultIcon {
+			continue // the caller asked for this icon
+		}
+		if icon := icons[audioRef(chapter)]; icon != "" {
+			synced[i] = withIcon(chapter, icon)
+		}
+	}
+	return synced
+}
+
+// audioRef identifies the audio a chapter plays: "yoto:#" plus the SHA-256 of the
+// transcoded file. Empty for a chapter with no tracks, which never matches.
+func audioRef(chapter yoto.Chapter) string {
+	if len(chapter.Tracks) == 0 {
+		return ""
+	}
+	return chapter.Tracks[0].TrackURL
+}
+
+// withIcon is a copy of a chapter showing a different icon. The tracks are copied
+// rather than written through, since the chapter may share its Tracks slice with
+// the card that was read.
+func withIcon(chapter yoto.Chapter, icon string) yoto.Chapter {
+	chapter.Display.Icon16x16 = icon
+	chapter.Tracks = append([]yoto.Track(nil), chapter.Tracks...)
+	for i := range chapter.Tracks {
+		chapter.Tracks[i].Display.Icon16x16 = icon
+	}
+	return chapter
 }
 
 // setMediaTotals recomputes the card level duration and size the app displays,

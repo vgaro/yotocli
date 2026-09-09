@@ -13,6 +13,7 @@ import (
 
 var (
 	createName        string
+	createSync        bool
 	createNoNormalize bool
 )
 
@@ -22,12 +23,19 @@ var createCmd = &cobra.Command{
 	Long: `Scans a directory for audio files (MP3, M4A, AAC, WAV), uploads them in parallel,
 and creates a Yoto playlist. Files are sorted alphabetically by filename.
 
-If a playlist of that name already exists the files are appended to it.`,
+If a playlist of that name already exists the files are appended to it, or with
+--sync the playlist is made to match the directory instead: files it already has
+keep the icons they were given and are not sent again, new files are added, and
+tracks that are no longer in the directory are removed. Files are matched by their
+audio rather than their name, so a renamed file keeps its icon.`,
 	Example: `  # Create a playlist from a folder
   yoto create ./audiobooks/dinosaur-expert
 
   # Create a playlist with a custom name
-  yoto create ./audiobooks/dinosaur-expert --name "All About Dinosaurs"`,
+  yoto create ./audiobooks/dinosaur-expert --name "All About Dinosaurs"
+
+  # Bring an existing playlist back in line with the folder
+  yoto create ./audiobooks/dinosaur-expert --sync`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir := args[0]
@@ -53,7 +61,11 @@ If a playlist of that name already exists the files are appended to it.`,
 			return fmt.Errorf("no audio files found in %s", dir)
 		}
 
-		fmt.Printf("Creating playlist '%s' with %d tracks...\n", createName, len(audioFiles))
+		verb := "Creating"
+		if createSync {
+			verb = "Syncing"
+		}
+		fmt.Printf("%s playlist '%s' with %d tracks...\n", verb, createName, len(audioFiles))
 
 		// No titles: these are files the user named themselves, so the file
 		// name is the best guess we have.
@@ -62,7 +74,7 @@ If a playlist of that name already exists the files are appended to it.`,
 			tracks[i] = actions.Track{Path: path}
 		}
 
-		return actions.AddTracks(apiClient, createName, tracks, func(format string, args ...interface{}) {
+		return actions.AddTracks(apiClient, createName, tracks, createSync, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},
@@ -70,6 +82,7 @@ If a playlist of that name already exists the files are appended to it.`,
 
 func init() {
 	createCmd.Flags().StringVarP(&createName, "name", "n", "", "Name of the playlist (defaults to directory name)")
+	createCmd.Flags().BoolVar(&createSync, "sync", false, "Make an existing playlist match the directory instead of appending to it: keeps the icons of tracks it already has, adds new ones, removes the rest")
 	createCmd.Flags().BoolVar(&createNoNormalize, "no-normalize", false, "Disable audio normalization")
 	if err := createCmd.Flags().MarkDeprecated("no-normalize", noNormalizeDeprecated); err != nil {
 		panic(err)

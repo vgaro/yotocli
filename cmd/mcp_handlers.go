@@ -174,6 +174,7 @@ func editPlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input Ed
 type ImportFromURLInput struct {
 	URL          string `json:"url" jsonschema:"The URL of the audio/video to download (e.g., YouTube)"`
 	PlaylistName string `json:"playlist_name,omitempty" jsonschema:"The name of the playlist to add to (creates new if empty or not found)"`
+	Sync         bool   `json:"sync,omitempty" jsonschema:"Make the playlist match the URL instead of appending to it: tracks already on it keep their icons and their audio is not sent again, new ones are added, and tracks the URL no longer lists are removed"`
 	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Deprecated and ignored: Yoto normalizes audio during transcoding"`
 }
 
@@ -183,7 +184,7 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, logger)
+	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, input.Sync, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
@@ -206,7 +207,7 @@ func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTra
 	}
 
 	track := actions.Track{Path: input.FilePath, Title: input.Title, IconID: input.IconID}
-	err := actions.AddTracks(apiClient, input.PlaylistName, []actions.Track{track}, logger)
+	err := actions.AddTracks(apiClient, input.PlaylistName, []actions.Track{track}, false, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}

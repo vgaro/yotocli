@@ -8,7 +8,12 @@ import (
 type Logger func(string, ...interface{})
 
 // ImportFromURL downloads everything a URL holds and adds it to one playlist.
-func ImportFromURL(client *yoto.Client, url string, playlistName string, log Logger) error {
+//
+// With syncPlaylist set the playlist is made to match the URL rather than added
+// to, which is how a feed that has gained an episode is re-imported without
+// ending up with two copies of every old one. See AddTracks for what that keeps
+// and what it removes.
+func ImportFromURL(client *yoto.Client, url string, playlistName string, syncPlaylist bool, log Logger) error {
 	if log == nil {
 		log = func(s string, i ...interface{}) {}
 	}
@@ -40,5 +45,5 @@ func ImportFromURL(client *yoto.Client, url string, playlistName string, log Log
 		tracks[i] = Track{Path: d.Path, Title: d.Name}
 	}
 
-	return AddTracks(client, targetPlaylist, tracks, log)
+	return AddTracks(client, targetPlaylist, tracks, syncPlaylist, log)
 }

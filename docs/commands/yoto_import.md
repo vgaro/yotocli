@@ -11,6 +11,13 @@ RSS feed, an Internet Archive item, or a direct link to an audio file. A URL tha
 holds several items imports all of them into the same playlist, in the order
 yt-dlp reports them, and each track is named after the item it came from.
 
+Re-importing the same URL adds a second copy of everything it holds. Pass --sync
+to make the playlist match the URL instead: episodes already on the card keep the
+icons they were given, new episodes are added, and tracks the URL no longer lists
+are removed. Episodes are matched by their audio rather than their title, so a
+renamed episode keeps its icon. yt-dlp still downloads everything the URL holds;
+it is the upload to Yoto that a sync skips.
+
 ```
 yoto import <url> [flags]
 ```
@@ -32,6 +39,9 @@ yoto import <url> [flags]
 
   # Import a public domain audiobook (one track per chapter)
   yoto import "https://archive.org/details/alices_adventures_1003" --playlist "Alice in Wonderland"
+
+  # Pick up new episodes of a feed without duplicating the old ones
+  yoto import "https://feeds.wgbh.org/2469/feed-rss.xml" --playlist "Arthur" --sync
 ```
 
 ### Options
@@ -39,6 +49,7 @@ yoto import <url> [flags]
 ```
   -h, --help              help for import
   -p, --playlist string   Target playlist name (optional)
+      --sync              Make an existing playlist match the URL instead of appending to it: keeps the icons of tracks it already has, adds new ones, removes the rest
 ```
 
 ### Options inherited from parent commands

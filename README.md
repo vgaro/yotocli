@@ -8,6 +8,7 @@ A powerful, native command-line interface for managing your Yoto Player library.
 - **⚡ Parallel Uploads:** Uploads up to 10 tracks at a time, so a folder or a whole podcast feed goes up as fast as Yoto will take it.
 - **🔊 Audio Normalization:** Yoto normalizes every upload to -16 LUFS as it transcodes, so tracks from different sources play back at the same volume.
 - **📂 File-System Like Management:** Manage your library like a filesystem (`ls`, `mv`, `cp`, `rm`).
+- **🔄 Sync Instead of Duplicate:** Re-run an import or a create with `--sync` and the playlist is brought in line with its source - new tracks are added, ones already there keep their icons and are not sent again, and tracks the source has dropped are removed.
 - **🛠️ Advanced Editing:** Reorder tracks, move tracks between playlists, and append new files easily.
 
 ## Installation
@@ -40,7 +41,12 @@ Create a new playlist from a local directory of audio files.
 # Creates a playlist named "Bedtime Stories" with all audio files in the folder
 yoto create --name "Bedtime Stories" ./path/to/mp3s/
 ```
-If a playlist of that name already exists, the files are added to it.
+If a playlist of that name already exists, the files are added to it. To bring an
+existing playlist back in line with the folder instead, pass `--sync`:
+```bash
+# Adds new files, keeps the icons of the ones already there, removes the rest
+yoto create --name "Bedtime Stories" ./path/to/mp3s/ --sync
+```
 
 ### 3. Listing Content
 List all playlists or deep-dive into tracks.
@@ -101,7 +107,18 @@ yoto import "https://archive.org/details/alices_adventures_1003" --playlist "Ali
 
 # Import a direct link to an audio file
 yoto import "https://example.com/story.mp3" --playlist "Bedtime Stories"
+
+# Pick up new episodes of a feed without duplicating the old ones
+yoto import "https://feeds.wgbh.org/2469/feed-rss.xml" --playlist "Arthur" --sync
 ```
+Re-importing the same URL adds a second copy of everything it holds, which is
+rarely what you want for a podcast. `--sync` makes the playlist match the URL
+instead: episodes already on the card keep any icon you set in the Yoto app and
+their audio is not sent again, new episodes are added, and tracks the URL no
+longer lists are removed. Episodes are matched by their audio rather than their
+title, so a renamed episode keeps its icon and one republished with different
+audio is treated as new. yt-dlp still downloads every episode the URL lists even
+though only the new ones are uploaded.
 > **Note:** a feed holds every episode the publisher still lists, so importing one can be a long download and a large card. Track titles come from the feed, so the episode names show up on the player. Nothing is written to the playlist until every upload has succeeded, so a failed import part way through leaves the card as it was.
 
 ### 7. Device Control

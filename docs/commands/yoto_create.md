@@ -7,7 +7,11 @@ Create a new playlist from a directory of audio files
 Scans a directory for audio files (MP3, M4A, AAC, WAV), uploads them in parallel,
 and creates a Yoto playlist. Files are sorted alphabetically by filename.
 
-If a playlist of that name already exists the files are appended to it.
+If a playlist of that name already exists the files are appended to it, or with
+--sync the playlist is made to match the directory instead: files it already has
+keep the icons they were given and are not sent again, new files are added, and
+tracks that are no longer in the directory are removed. Files are matched by their
+audio rather than their name, so a renamed file keeps its icon.
 
 ```
 yoto create <directory> [flags]
@@ -21,6 +25,9 @@ yoto create <directory> [flags]
 
   # Create a playlist with a custom name
   yoto create ./audiobooks/dinosaur-expert --name "All About Dinosaurs"
+
+  # Bring an existing playlist back in line with the folder
+  yoto create ./audiobooks/dinosaur-expert --sync
 ```
 
 ### Options
@@ -28,6 +35,7 @@ yoto create <directory> [flags]
 ```
   -h, --help          help for create
   -n, --name string   Name of the playlist (defaults to directory name)
+      --sync          Make an existing playlist match the directory instead of appending to it: keeps the icons of tracks it already has, adds new ones, removes the rest
 ```
 
 ### Options inherited from parent commands
