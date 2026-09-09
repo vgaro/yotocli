@@ -29,10 +29,25 @@ sudo mv yoto /usr/local/bin/
 For detailed information on every command, see the [Command Documentation](docs/commands/yoto.md).
 
 ### 1. Authentication
-First, log in to your Yoto account. This uses the secure Device Code flow.
+First, log in to your Yoto account. This opens your browser and uses the OAuth2
+authorization code flow with PKCE, receiving the result on a short-lived local
+server at `http://127.0.0.1:8787/callback`.
 ```bash
 yoto login
 ```
+
+#### Registering your application
+Get a Client ID from the **Yoto Developer Dashboard**: https://dashboard.yoto.dev/
+
+| Setting | Value |
+| --- | --- |
+| Application Type | **Public Client** |
+| Allowed Callback URLs | `http://127.0.0.1:8787/callback` |
+| Allowed Logout URLs | *(leave blank)* |
+| Scopes | `family:library:view`, `family:library:manage`, `user:content:view`, `user:content:manage`, `user:icons:manage`, `family:devices:view`, `family:devices:control`, `offline_access` |
+
+The callback URL must match exactly — the CLI listens on port `8787` during
+`yoto login`. `offline_access` is required for the stored refresh token.
 
 ### 2. Creating a Card (The "Happy Path")
 Create a new playlist from a local directory of audio files.
@@ -154,13 +169,15 @@ yoto cp "Bedtime/1" "Favorites/"
 Configuration is stored in `~/.config/yotocli/config.yaml`.
 
 ### Custom Client ID
-If you want to use your own Yoto API Client ID, add it to the config.
-You can get one from the **Yoto Developer Dashboard**: https://dashboard.yoto.dev/
+`yoto login` stores your Client ID for you, but you can also set it directly:
 
 ```yaml
 auth:
   client_id: "YOUR_CLIENT_ID"
 ```
+
+For the dashboard settings your application needs, see
+[Registering your application](#registering-your-application).
 
 ## 🤖 AI Agent Integration (MCP)
 

@@ -1,26 +1,81 @@
 package yoto
 
 import (
-	"encoding/json"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"net/url"
-	"time"
+	"strings"
 )
 
 const (
-	AuthURL  = "https://login.yotoplay.com/oauth/device/code"
-	TokenURL = "https://login.yotoplay.com/oauth/token"
-	Audience = "https://api.yotoplay.com"
-	Scope    = "openid profile email offline_access"
+	AuthorizeURL = "https://login.yotoplay.com/authorize"
+	TokenURL     = "https://login.yotoplay.com/oauth/token"
+	Audience     = "https://api.yotoplay.com"
+
+	// RedirectURI must be registered verbatim as an Allowed Callback URL
+	// in the Yoto developer dashboard (https://dashboard.yoto.dev/).
+	RedirectURI = "http://127.0.0.1:8787/callback"
+
+	// CallbackAddr is the loopback address RedirectURI resolves to.
+	CallbackAddr = "127.0.0.1:8787"
+
+	// CallbackPath is the path the local callback server serves.
+	CallbackPath = "/callback"
 )
 
-type DeviceAuthResponse struct {
-	DeviceCode              string `json:"device_code"`
-	UserCode                string `json:"user_code"`
-	VerificationURI         string `json:"verification_uri"`
-	VerificationURIComplete string `json:"verification_uri_complete"`
-	ExpiresIn               int    `json:"expires_in"`
-	Interval                int    `json:"interval"`
+// OIDCScopes are standard OpenID Connect scopes. They are always available and
+// are not listed in the developer dashboard's scope picker.
+var OIDCScopes = []string{"openid", "profile", "email"}
+
+// APIScopes are the Yoto API scopes this CLI needs. These are the ones to
+// select when registering an application at https://dashboard.yoto.dev/.
+// Granting more than this is harmless; granting less breaks some commands.
+var APIScopes = []string{
+	"offline_access",         // required: issues the refresh token we store
+	"family:library:view",    // yoto ls
+	"family:library:manage",  // yoto rm
+	"user:content:view",      // yoto download, yoto playlist
+	"user:content:manage",    // yoto create, add, edit, import
+	"user:icons:manage",      // yoto icon
+	"family:devices:view",    // yoto status, yoto player
+	"family:devices:control", // yoto play/stop/pause, yoto volume
+}
+
+// Scope is the space-delimited scope string sent to the authorize endpoint.
+var Scope = strings.Join(append(append([]string{}, OIDCScopes...), APIScopes...), " ")
+
+// PKCE holds a code verifier and its derived S256 challenge.
+type PKCE struct {
+	Verifier  string
+	Challenge string
+}
+
+// NewPKCE generates a fresh PKCE verifier and its S256 challenge.
+func NewPKCE() (*PKCE, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return nil, fmt.Errorf("failed to generate PKCE verifier: %w", err)
+	}
+
+	verifier := base64.RawURLEncoding.EncodeToString(raw)
+	sum := sha256.Sum256([]byte(verifier))
+
+	return &PKCE{
+		Verifier:  verifier,
+		Challenge: base64.RawURLEncoding.EncodeToString(sum[:]),
+	}, nil
+}
+
+// NewState generates an opaque value used to correlate the callback with
+// the request this CLI started.
+func NewState() (string, error) {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		return "", fmt.Errorf("failed to generate state: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
 type TokenResponse struct {
@@ -32,71 +87,45 @@ type TokenResponse struct {
 	Error        string `json:"error"`
 }
 
-// StartDeviceAuth initiates the device code flow
-func (c *Client) StartDeviceAuth() (*DeviceAuthResponse, error) {
+// AuthorizeURLFor builds the browser URL that starts the authorization code
+// flow with PKCE.
+func (c *Client) AuthorizeURLFor(challenge, state string) string {
+	q := url.Values{}
+	q.Set("response_type", "code")
+	q.Set("client_id", c.clientID)
+	q.Set("audience", Audience)
+	q.Set("scope", Scope)
+	q.Set("redirect_uri", RedirectURI)
+	q.Set("code_challenge", challenge)
+	q.Set("code_challenge_method", "S256")
+	q.Set("state", state)
+
+	return AuthorizeURL + "?" + q.Encode()
+}
+
+// ExchangeCode trades an authorization code plus its PKCE verifier for tokens.
+func (c *Client) ExchangeCode(code, verifier string) (*TokenResponse, error) {
 	data := url.Values{}
+	data.Set("grant_type", "authorization_code")
 	data.Set("client_id", c.clientID)
-	data.Set("scope", Scope)
-	data.Set("audience", Audience)
+	data.Set("code", code)
+	data.Set("code_verifier", verifier)
+	data.Set("redirect_uri", RedirectURI)
 
 	resp, err := c.http.R().
 		SetFormDataFromValues(data).
-		SetResult(&DeviceAuthResponse{}).
-		Post(AuthURL)
+		SetResult(&TokenResponse{}).
+		Post(TokenURL)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to start auth: %w", err)
+		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
 	}
 
 	if resp.IsError() {
-		return nil, fmt.Errorf("auth request failed: %s", resp.String())
+		return nil, fmt.Errorf("code exchange failed: %s", resp.String())
 	}
 
-	return resp.Result().(*DeviceAuthResponse), nil
-}
-
-// PollToken polls the token endpoint until the user authorizes or it times out
-func (c *Client) PollToken(deviceCode string, interval int) (*TokenResponse, error) {
-	// Minimum polling interval
-	if interval < 5 {
-		interval = 5
-	}
-
-	data := url.Values{}
-	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
-	data.Set("device_code", deviceCode)
-	data.Set("client_id", c.clientID)
-
-	for {
-		resp, err := c.http.R().
-			SetFormDataFromValues(data).
-			SetResult(&TokenResponse{}).
-			Post(TokenURL)
-
-		if err != nil {
-			return nil, err // Network error, abort
-		}
-
-		// Parse generic error first to handle "authorization_pending"
-		var errResp map[string]interface{}
-		json.Unmarshal(resp.Body(), &errResp)
-
-		if resp.IsError() {
-			errCode, _ := errResp["error"].(string)
-			if errCode == "authorization_pending" {
-				time.Sleep(time.Duration(interval) * time.Second)
-				continue
-			}
-			if errCode == "slow_down" {
-				interval += 5
-				time.Sleep(time.Duration(interval) * time.Second)
-				continue
-			}
-			return nil, fmt.Errorf("token error: %v", errResp)
-		}
-
-		return resp.Result().(*TokenResponse), nil
-	}
+	return resp.Result().(*TokenResponse), nil
 }
 
 // RefreshToken exchanges a refresh token for a new access token
