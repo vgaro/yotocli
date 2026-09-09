@@ -84,14 +84,27 @@ yoto edit "Sleepy Time/1" --name "Chapter 1"
 ```
 
 ### 6. Importing from Web (YouTube/etc)
-Download audio directly from the web to a card.
+Download audio directly from the web to a card. Anything [yt-dlp](https://github.com/yt-dlp/yt-dlp) can extract works, including podcast RSS feeds. A URL that holds more than one item - a playlist, or a feed - imports every item into the same playlist, in the order yt-dlp reports them.
 ```bash
 # Import video to a specific playlist
 yoto import "https://youtu.be/..." --playlist "Bedtime Stories"
 
 # Import to a new playlist (uses video title)
 yoto import "https://youtu.be/..."
+
+# Import a YouTube playlist (every video lands in one playlist)
+yoto import "https://www.youtube.com/playlist?list=..." --playlist "Sing Alongs"
+
+# Import a podcast RSS feed (every episode in the feed)
+yoto import "https://feeds.wgbh.org/2469/feed-rss.xml" --playlist "Arthur"
+
+# Import a public domain audiobook from the Internet Archive (one track per chapter)
+yoto import "https://archive.org/details/alices_adventures_1003" --playlist "Alice in Wonderland"
+
+# Import a direct link to an audio file
+yoto import "https://example.com/story.mp3" --playlist "Bedtime Stories"
 ```
+> **Note:** a feed holds every episode the publisher still lists, so importing one can be a long download and a large card. Track titles come from the feed, so the episode names show up on the player.
 
 ### 7. Device Control
 Check your player's status.

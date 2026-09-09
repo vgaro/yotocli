@@ -194,6 +194,7 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 type AddTrackInput struct {
 	FilePath     string `json:"file_path" jsonschema:"The path to the local audio file to upload"`
 	PlaylistName string `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
+	Title        string `json:"title,omitempty" jsonschema:"Optional track title (defaults to the file name without its extension)"`
 	IconID       string `json:"icon_id,omitempty" jsonschema:"Optional icon ID (e.g. from upload_icon)"`
 	NoNormalize  bool   `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
 }
@@ -204,7 +205,7 @@ func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTra
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.IconID, !input.NoNormalize, logger)
+	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.Title, input.IconID, !input.NoNormalize, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
