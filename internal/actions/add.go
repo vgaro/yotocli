@@ -14,7 +14,11 @@ import (
 // AddTrack uploads a local file and adds it to a playlist.
 // playlistQuery can be "Name" or "Name/Position".
 // If playlist doesn't exist, it creates it.
-func AddTrack(client *yoto.Client, playlistQuery string, filePath string, iconID string, normalize bool, log Logger) error {
+//
+// title is the name the track gets on the card. Pass "" to derive it from the
+// file name, which is the right thing for a file the user picked themselves;
+// callers that know better should say so (see trackTitle).
+func AddTrack(client *yoto.Client, playlistQuery string, filePath string, title string, iconID string, normalize bool, log Logger) error {
 	if log == nil {
 		log = func(s string, i ...interface{}) {}
 	}
@@ -79,8 +83,7 @@ func AddTrack(client *yoto.Client, playlistQuery string, filePath string, iconID
 		return err
 	}
 
-	// Use filename as title if not provided
-	title := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+	title = trackTitle(title, filePath)
 
 	// Determine icon
 	iconVal := iconID
@@ -153,4 +156,18 @@ func AddTrack(client *yoto.Client, playlistQuery string, filePath string, iconID
 	}
 	log("Creating playlist '%s'...", targetCard.Title)
 	return client.CreateCard(targetCard)
+}
+
+// trackTitle picks the name to show for a track, falling back to the file name
+// with its extension stripped when the caller has no title of its own.
+//
+// The fallback is only a decent guess for a file the user named. Downloads are
+// the case where it is wrong: DownloadFromURL names files after the yt-dlp ID
+// to keep awkward characters out of paths, so a whole podcast feed would land
+// on the card as a column of IDs. Those callers pass Download.Name instead.
+func trackTitle(title string, filePath string) string {
+	if strings.TrimSpace(title) != "" {
+		return title
+	}
+	return strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
 }

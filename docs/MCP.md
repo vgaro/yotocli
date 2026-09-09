@@ -82,12 +82,12 @@ Updates the metadata of a playlist.
 - **Input:** `playlist_id` (string), `title` (optional), `description` (optional), `author` (optional)
 
 ### `import_from_url`
-Downloads audio from a URL (e.g., YouTube), normalizes it, and adds it to a playlist.
+Downloads audio from a URL (e.g., YouTube, or a podcast RSS feed), normalizes it, and adds it to a playlist. A URL holding several items - a playlist or a feed - adds every item to the same playlist.
 - **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional)
 
 ### `add_track`
 Uploads a local audio file to a playlist.
-- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `icon_id` (string, optional), `no_normalize` (boolean, optional)
+- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `title` (string, optional - defaults to the file name), `icon_id` (string, optional), `no_normalize` (boolean, optional)
 
 ### `set_track_icon`
 Sets the icon for a specific track in a playlist.
