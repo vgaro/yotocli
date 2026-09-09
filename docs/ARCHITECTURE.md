@@ -24,6 +24,8 @@ The project follows a standard Go CLI layout:
 - **`pkg/yoto/`**: The Core API Client.
     - Wraps the Yoto HTTP API (unofficial/reverse-engineered).
     - **Models:** Defines `Card`, `Chapter`, `Track` structs mirroring the JSON response.
+    - **Passthrough:** An update *replaces* the card with the document it is sent, and the API says far more about a card than these structs model - cover art, playback config, a chapter's ambient light. So every model keeps the fields it does not understand and writes them back untouched (`passthrough.go`); without that, changing a track list also erased the card's cover image.
+    - **Two shapes for one thing:** A track's audio is written as `yoto:#<sha256>` and read back as a signed CDN URL carrying the same hash in a `#sha256=` fragment; an icon is written as `yoto:#<hash>` and read back as an https URL. `AudioSHA256` and `IconRef` reduce both to one form, which is what lets a track read from a card be recognised as the audio being uploaded.
     - **Auth:** Handles OAuth2 Device Flow and Token Refresh.
     - **Upload:** Manages the multi-step upload (Get URL -> PUT -> Poll Transcode).
     - *Zero dependency on CLI logic.* Can be imported by other Go programs.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -185,24 +184,10 @@ func sanitizeCardForUpdate(card *Card) {
 }
 
 func fixIcon(d *Display) {
-	if d == nil || d.Icon16x16 == "" {
+	if d == nil {
 		return
 	}
-	if strings.HasPrefix(d.Icon16x16, "http") {
-		// Extract last part of path
-		parts := strings.Split(d.Icon16x16, "/")
-		if len(parts) > 0 {
-			hash := parts[len(parts)-1]
-			// Sometimes URLs have query params, strip them
-			if idx := strings.Index(hash, "?"); idx != -1 {
-				hash = hash[:idx]
-			}
-			// Verify length is 43? Or just try.
-			if len(hash) == 43 {
-				d.Icon16x16 = "yoto:#" + hash
-			}
-		}
-	}
+	d.Icon16x16 = IconRef(d.Icon16x16)
 }
 
 func (c *Client) CreateCard(card *Card) error {
