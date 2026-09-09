@@ -45,7 +45,14 @@ It allows for uploading files, creating playlists, and managing device state dir
 					return fmt.Errorf("failed to refresh token: %v. Please run 'yoto login'", refreshErr)
 				}
 
-				config.SetToken(newTokens.AccessToken, newTokens.RefreshToken)
+				// Refresh tokens rotate and are single-use, so the new one must
+				// replace the stored copy. If the response omitted one, keep the
+				// existing token rather than wiping it.
+				rotated := newTokens.RefreshToken
+				if rotated == "" {
+					rotated = refreshToken
+				}
+				config.SetToken(newTokens.AccessToken, rotated)
 				if err := config.Save(); err != nil {
 					return fmt.Errorf("failed to save new tokens: %w", err)
 				}
