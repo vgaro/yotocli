@@ -22,7 +22,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Install runtime dependencies
-# ffmpeg: For audio normalization
+# ffmpeg: Used by yt-dlp to convert downloaded audio
 # python3 & py3-pip: For yt-dlp
 # curl: For healthcheck
 RUN apk add --no-cache \

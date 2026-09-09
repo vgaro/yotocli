@@ -4,8 +4,7 @@ Download audio from a URL and add it to a playlist
 
 ### Synopsis
 
-Uses yt-dlp to download audio from a URL, normalizes the volume, and adds it
-to a Yoto playlist.
+Uses yt-dlp to download audio from a URL and adds it to a Yoto playlist.
 
 Anything yt-dlp can extract works: a YouTube video, a YouTube playlist, a podcast
 RSS feed, an Internet Archive item, or a direct link to an audio file. A URL that
@@ -39,7 +38,6 @@ yoto import <url> [flags]
 
 ```
   -h, --help              help for import
-      --no-normalize      Disable audio normalization
   -p, --playlist string   Target playlist name (optional)
 ```
 

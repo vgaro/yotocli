@@ -5,8 +5,8 @@ A powerful, native command-line interface for managing your Yoto Player library.
 ## Features
 
 - **🚀 One-Shot Creation:** Turn a folder of MP3s into a Yoto Playlist with a single command.
-- **⚡ Parallel Uploads:** Uploads tracks concurrently for maximum speed.
-- **🔊 Audio Normalization:** Automatically normalizes audio to -16 LUFS (Stereo) / -18 LUFS (Mono) using `ffmpeg`.
+- **⚡ Parallel Uploads:** Uploads up to 10 tracks at a time, so a folder or a whole podcast feed goes up as fast as Yoto will take it.
+- **🔊 Audio Normalization:** Yoto normalizes every upload to -16 LUFS as it transcodes, so tracks from different sources play back at the same volume.
 - **📂 File-System Like Management:** Manage your library like a filesystem (`ls`, `mv`, `cp`, `rm`).
 - **🛠️ Advanced Editing:** Reorder tracks, move tracks between playlists, and append new files easily.
 
@@ -14,7 +14,7 @@ A powerful, native command-line interface for managing your Yoto Player library.
 
 ### Prerequisites
 - **Go 1.24+** (to build)
-- **ffmpeg** (for audio normalization)
+- **yt-dlp** and **ffmpeg** (only for `yoto import`, which downloads with yt-dlp and lets it convert to MP3)
 
 ### Build
 ```bash
@@ -39,10 +39,8 @@ Create a new playlist from a local directory of audio files.
 ```bash
 # Creates a playlist named "Bedtime Stories" with all audio files in the folder
 yoto create --name "Bedtime Stories" ./path/to/mp3s/
-
-# Disable normalization if files are already processed
-yoto create --no-normalize ./path/to/mp3s/
 ```
+If a playlist of that name already exists, the files are added to it.
 
 ### 3. Listing Content
 List all playlists or deep-dive into tracks.
@@ -104,7 +102,7 @@ yoto import "https://archive.org/details/alices_adventures_1003" --playlist "Ali
 # Import a direct link to an audio file
 yoto import "https://example.com/story.mp3" --playlist "Bedtime Stories"
 ```
-> **Note:** a feed holds every episode the publisher still lists, so importing one can be a long download and a large card. Track titles come from the feed, so the episode names show up on the player.
+> **Note:** a feed holds every episode the publisher still lists, so importing one can be a long download and a large card. Track titles come from the feed, so the episode names show up on the player. Nothing is written to the playlist until every upload has succeeded, so a failed import part way through leaves the card as it was.
 
 ### 7. Device Control
 Check your player's status.
@@ -198,7 +196,7 @@ Then configure Claude to point to `http://YOUR_TAILSCALE_IP:8080/sse`.
 For full configuration instructions and available tools, see the [MCP Server Guide](docs/MCP.md).
 
 ## Troubleshooting
-- **Normalization Failed:** Ensure `ffmpeg` is installed and in your PATH.
+- **Import Failed:** Ensure `yt-dlp` and `ffmpeg` are installed and in your PATH.
 - **Authentication:** If commands fail with 401/403, run `yoto login` again.
 
 ## License

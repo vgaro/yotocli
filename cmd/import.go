@@ -15,8 +15,7 @@ var (
 var importCmd = &cobra.Command{
 	Use:   "import <url>",
 	Short: "Download audio from a URL and add it to a playlist",
-	Long: `Uses yt-dlp to download audio from a URL, normalizes the volume, and adds it
-to a Yoto playlist.
+	Long: `Uses yt-dlp to download audio from a URL and adds it to a Yoto playlist.
 
 Anything yt-dlp can extract works: a YouTube video, a YouTube playlist, a podcast
 RSS feed, an Internet Archive item, or a direct link to an audio file. A URL that
@@ -39,7 +38,7 @@ yt-dlp reports them, and each track is named after the item it came from.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		url := args[0]
-		return actions.ImportFromURL(apiClient, url, importPlaylist, !importNoNormalize, func(format string, args ...interface{}) {
+		return actions.ImportFromURL(apiClient, url, importPlaylist, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},
@@ -48,5 +47,8 @@ yt-dlp reports them, and each track is named after the item it came from.`,
 func init() {
 	importCmd.Flags().StringVarP(&importPlaylist, "playlist", "p", "", "Target playlist name (optional)")
 	importCmd.Flags().BoolVar(&importNoNormalize, "no-normalize", false, "Disable audio normalization")
+	if err := importCmd.Flags().MarkDeprecated("no-normalize", noNormalizeDeprecated); err != nil {
+		panic(err)
+	}
 	rootCmd.AddCommand(importCmd)
 }

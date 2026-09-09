@@ -82,12 +82,12 @@ Updates the metadata of a playlist.
 - **Input:** `playlist_id` (string), `title` (optional), `description` (optional), `author` (optional)
 
 ### `import_from_url`
-Downloads audio from a URL (e.g., YouTube, or a podcast RSS feed), normalizes it, and adds it to a playlist. A URL holding several items - a playlist or a feed - adds every item to the same playlist.
-- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional)
+Downloads audio from a URL (e.g., YouTube, or a podcast RSS feed) and adds it to a playlist. A URL holding several items - a playlist or a feed - adds every item to the same playlist, uploading them concurrently.
+- **Input:** `url` (string), `playlist_name` (optional - creates new if empty or not found), `no_normalize` (boolean, optional - deprecated, ignored: Yoto normalizes audio itself)
 
 ### `add_track`
 Uploads a local audio file to a playlist.
-- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `title` (string, optional - defaults to the file name), `icon_id` (string, optional), `no_normalize` (boolean, optional)
+- **Input:** `file_path` (string), `playlist_name` (string - creates new if not found), `title` (string, optional - defaults to the file name), `icon_id` (string, optional), `no_normalize` (boolean, optional - deprecated, ignored)
 
 ### `set_track_icon`
 Sets the icon for a specific track in a playlist.
@@ -145,7 +145,7 @@ Pauses playback on a device.
 -   **"Unauthorized" Error:** The access token has expired and the server hasn't refreshed it yet, or the configuration is stale.
     *   **Fix:** Run `yoto ls` in your terminal to force a refresh, then **restart the MCP server** (e.g., restart Claude Desktop).
 -   **"Track not found" / "Invalid index":** Remember that `track_index` is 1-based (matches the Yoto app UI), not 0-based.
--   **"yt-dlp not found":** The `import_from_url` tool requires `yt-dlp` to be installed on the host system.
+-   **"yt-dlp not found":** The `import_from_url` tool requires `yt-dlp` (and `ffmpeg`, which yt-dlp uses to convert audio) to be installed on the host system.
 
 ## Example Prompts
 
