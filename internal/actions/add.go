@@ -141,7 +141,12 @@ func findOrCreateCard(client *yoto.Client, playlistQuery string, log Logger) (*y
 // near the card. It is the only part of AddTracks that runs concurrently, and
 // it shares nothing but the client: each call gets its own upload ID from Yoto.
 func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, error) {
-	upData, err := client.GetUploadURL()
+	hash, err := yoto.FileSHA256(track.Path)
+	if err != nil {
+		return yoto.Chapter{}, err
+	}
+
+	upData, err := client.GetUploadURL(hash, filepath.Base(track.Path))
 	if err != nil {
 		return yoto.Chapter{}, err
 	}
@@ -149,11 +154,17 @@ func uploadChapter(client *yoto.Client, track Track) (yoto.Chapter, error) {
 		return yoto.Chapter{}, fmt.Errorf("yoto returned no upload id for %s", track.Path)
 	}
 
-	// The file goes up exactly as it is on disk: Yoto's transcoder normalizes it
-	// (loudnorm to -16 LUFS) and re-encodes it to Opus on the way in, so anything
-	// done to the audio first would only be undone.
-	if err := client.UploadFile(track.Path, upData.Upload.UploadURL); err != nil {
-		return yoto.Chapter{}, err
+	// No upload URL means Yoto recognised the hash and already holds this audio,
+	// so there is nothing to send. Re-importing a feed only pays for the
+	// episodes that are new.
+	//
+	// Otherwise the file goes up exactly as it is on disk: Yoto's transcoder
+	// normalizes it (loudnorm to -16 LUFS) and re-encodes it to Opus on the way
+	// in, so anything done to the audio first would only be undone.
+	if upData.Upload.UploadURL != "" {
+		if err := client.UploadFile(track.Path, upData.Upload.UploadURL); err != nil {
+			return yoto.Chapter{}, err
+		}
 	}
 
 	transData, err := client.PollTranscode(upData.Upload.UploadID)
