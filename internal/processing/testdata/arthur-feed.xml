@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A trimmed, frozen copy of https://feeds.wgbh.org/2469/feed-rss.xml holding the
+  three most recent episodes as of 2026-02-12. Served by the test's local HTTP
+  server so the feed itself never changes underneath us. The enclosure URLs
+  still point at the real PRX audio, which is what yt-dlp downloads.
+-->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>The Arthur Podcast</title>
+    <link>https://pbskids.org/arthur/podcast</link>
+    <description>Stories from Elwood City.</description>
+    <language>en-us</language>
+    <item>
+      <title>Bleep!</title>
+      <guid isPermaLink="false">prx_2469_afd75028-d39d-4c82-b1da-040d1604b2f1</guid>
+      <pubDate>Thu, 12 Feb 2026 11:00:00 -0000</pubDate>
+      <enclosure url="https://dts.podtrac.com/redirect.mp3/dovetail.prxu.org/2469/afd75028-d39d-4c82-b1da-040d1604b2f1/EP_405_Bleep_Finalmix.mp3" length="31792448" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Buster Baxter, Cat Saver</title>
+      <guid isPermaLink="false">prx_2469_86121696-75fc-4019-9c23-8311f3d549d6</guid>
+      <pubDate>Thu, 05 Feb 2026 11:00:00 -0000</pubDate>
+      <enclosure url="https://dts.podtrac.com/redirect.mp3/dovetail.prxu.org/2469/86121696-75fc-4019-9c23-8311f3d549d6/Ep_404_Buster_Baxter__Cat_Saver_Finalmix.mp3" length="35271488" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>What Scared Sue Ellen</title>
+      <guid isPermaLink="false">prx_2469_a95bc715-6856-4c5a-9d4c-1d4dd456634c</guid>
+      <pubDate>Thu, 29 Jan 2026 11:00:00 -0000</pubDate>
+      <enclosure url="https://dts.podtrac.com/redirect.mp3/dovetail.prxu.org/2469/a95bc715-6856-4c5a-9d4c-1d4dd456634c/Ep_403_What_Scared_Sue_Ellen_Finalmix.mp3" length="31692608" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>
