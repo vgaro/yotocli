@@ -1,44 +1,54 @@
 package actions
 
 import (
-        "os"
-
-        "github.com/vgaro/yotocli/internal/processing"
-        "github.com/vgaro/yotocli/pkg/yoto"
+	"github.com/vgaro/yotocli/internal/processing"
+	"github.com/vgaro/yotocli/pkg/yoto"
 )
 
 type Logger func(string, ...interface{})
 
-func ImportFromURL(client *yoto.Client, url string, playlistName string, normalize bool, trimStart, trimEnd float64, log Logger) error {
+// ImportFromURL downloads everything a URL holds and adds it to one playlist.
+//
+// With syncPlaylist set the playlist is made to match the URL rather than added
+// to, which is how a feed that has gained an episode is re-imported without
+// ending up with two copies of every old one. See AddTracks for what that keeps
+// and what it removes.
+func ImportFromURL(client *yoto.Client, url string, playlistName string, syncPlaylist bool, trimStart, trimEnd float64, log Logger) error {
 	if log == nil {
 		log = func(s string, i ...interface{}) {}
 	}
 
 	log("Downloading audio from %s...", url)
-	items, err := processing.DownloadFromURL(url)
+	downloads, cleanup, err := processing.DownloadFromURL(url)
+	defer func() {
+		if err := cleanup(); err != nil {
+			log("Warning: failed to remove downloaded files: %v", err)
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
-	log("Downloaded %d items.", len(items))
+	log("Downloaded %d track(s)", len(downloads))
 
-	for i, item := range items {
-		log("[%d/%d] Processing: %s", i+1, len(items), item.Title)
+	// If no playlist specified, use the title of the first download
+	targetPlaylist := playlistName
+	if targetPlaylist == "" {
+		targetPlaylist = downloads[0].Name
+	}
 
-		// If no playlist specified, use the title of the first track as playlist name
-		targetPlaylist := playlistName
-		if targetPlaylist == "" {
-			targetPlaylist = items[0].Title
-		}
-
-		// AddTrack handles normalization, trimming, finding/creating playlist, upload, and update
-		err = AddTrack(client, targetPlaylist, item.Path, item.Title, "", normalize, trimStart, trimEnd, log)
-		os.Remove(item.Path) // Clean up downloaded file immediately
-		if err != nil {
-			log("Error adding track '%s': %v", item.Title, err)
-			return err
+	// d.Name is passed as the track title: the downloaded file is named after
+	// the yt-dlp ID, so leaving the title to be derived from it would put
+	// things like "Ixrje2rXLMA" on the card.
+	tracks := make([]Track, len(downloads))
+	for i, d := range downloads {
+		tracks[i] = Track{
+			Path:      d.Path,
+			Title:     d.Name,
+			TrimStart: trimStart,
+			TrimEnd:   trimEnd,
 		}
 	}
 
-	return nil
+	return AddTracks(client, targetPlaylist, tracks, syncPlaylist, log)
 }
