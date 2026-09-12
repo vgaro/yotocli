@@ -199,3 +199,21 @@
     - Edited track 12 of "My Songs 2026" to set its icon to the new elephant icon.
 - **Blockers:** Direct download from URL inside yoto icon upload failed due to Yoto Authorization headers sent to GitHub; bypassed by downloading locally via curl first.
 - **Next Steps:** None.
+
+## [2026-09-12] - [PR Review & Compilation Fix] - [Maintenance]
+- **Goal:** Review and work on PR #2 from anitschke to support importing multiple tracks from playlists/RSS feeds.
+- **Activity:**
+    - Fixed compilation error on main branch: `create.go` was calling `GetUploadURL()` without required parameters (commit 7bd550c).
+    - Updated `create.go` to calculate file SHA256 and pass it to `GetUploadURL(hash, filename)`, enabling deduplication.
+    - All tests pass (go test ./...). Main branch is fully functional.
+    - **Analysis: PR #2 is Outdated**
+      * PR #2 was created 2026-09-09, but Vicente's recent commits (2026-09-11) already implement what it's trying to achieve
+      * Main already supports: multi-track imports (eaf567e), multi-download parsing (ff095aa), sha256 dedup (f64e5e3)
+      * PR #2 actually REMOVES features the main branch has:
+        - Trimming features (--trim-start, --trim-end) from 2026-06-13
+        - Icon management system (internal/config/icons.go) from 2026-03-28
+        - Test coverage for icons and passthrough
+        - Concurrent upload orchestration (supports up to 10 parallel uploads)
+    - **Recommendation: Do not merge PR #2** - it's a regression. Main branch is superior.
+- **Blockers:** None.
+- **Status:** Main branch fixed and ready. PR #2 can be closed or archived for reference.
