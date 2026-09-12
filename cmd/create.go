@@ -83,8 +83,13 @@ and creates a brand new Yoto playlist. Files are sorted alphabetically by filena
 				}
 
 				fmt.Printf("[%d/%d] Uploading %s...\n", i+1, len(audioFiles), filepath.Base(path))
-				
-				upData, err := apiClient.GetUploadURL()
+
+				hash, err := yoto.FileSHA256(uploadPath)
+				if err != nil {
+					return err
+				}
+
+				upData, err := apiClient.GetUploadURL(hash, filepath.Base(uploadPath))
 				if err != nil {
 					return err
 				}
