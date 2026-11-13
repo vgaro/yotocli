@@ -94,8 +94,19 @@ and creates a brand new Yoto playlist. Files are sorted alphabetically by filena
 					return err
 				}
 
-				if err := apiClient.UploadFile(uploadPath, upData.Upload.UploadURL); err != nil {
-					return err
+				if upData.Upload.UploadID == "" {
+					return fmt.Errorf("yoto returned no upload id for %s", path)
+				}
+
+				// No upload URL means Yoto recognised the hash and already holds
+				// this audio, so there is nothing to send. This mirrors
+				// uploadChapter in internal/actions/add.go.
+				if upData.Upload.UploadURL != "" {
+					if err := apiClient.UploadFile(uploadPath, upData.Upload.UploadURL); err != nil {
+						return err
+					}
+				} else {
+					fmt.Printf("[%d/%d] Already on Yoto, nothing sent: %s\n", i+1, len(audioFiles), filepath.Base(path))
 				}
 
 				transData, err := apiClient.PollTranscode(upData.Upload.UploadID)
