@@ -217,3 +217,14 @@
     - **Recommendation: Do not merge PR #2** - it's a regression. Main branch is superior.
 - **Blockers:** None.
 - **Status:** Main branch fixed and ready. PR #2 can be closed or archived for reference.
+
+## [2026-11-22] - [Auth-Update] - [Complete]
+- **Goal:** Resolve OAuth refresh token expiration and update client credentials for yotocli and yoto-mcp.
+- **Activity:**
+  - Migrated legacy application to newly created Public Client app in Yoto Developer Dashboard.
+  - Configured allowed callback URL (`http://127.0.0.1:8787/callback`) and updated client ID in user configuration.
+  - Successfully authenticated via PKCE loopback redirect.
+  - Verified API connectivity with `yoto status` and restored `yoto-mcp` Docker service to healthy state.
+- **Blockers:** None.
+- **Status/Next Steps:** Complete. Both CLI and MCP container are healthy and authenticated.
+
