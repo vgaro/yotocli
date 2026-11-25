@@ -172,9 +172,10 @@ func editPlaylistHandler(ctx context.Context, req *mcp.CallToolRequest, input Ed
 
 // Import from URL
 type ImportFromURLInput struct {
-	URL          string  `json:"url" jsonschema:"The URL of the audio/video to download (e.g., YouTube)"`
+	URL          string  `json:"url" jsonschema:"The URL of the audio/video to download (e.g., YouTube video or playlist, podcast RSS)"`
 	PlaylistName string  `json:"playlist_name,omitempty" jsonschema:"The name of the playlist to add to (creates new if empty or not found)"`
-	NoNormalize  bool    `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+	Sync         bool    `json:"sync,omitempty" jsonschema:"Make the playlist match the URL instead of appending: existing tracks keep icons and audio is not re-sent, new tracks are added, removed ones deleted"`
+	NoNormalize  bool    `json:"no_normalize,omitempty" jsonschema:"Deprecated: audio is normalized by Yoto during transcoding"`
 	TrimStart    float64 `json:"trim_start,omitempty" jsonschema:"Trim N seconds from the start"`
 	TrimEnd      float64 `json:"trim_end,omitempty" jsonschema:"Trim N seconds from the end"`
 }
@@ -185,7 +186,7 @@ func importFromURLHandler(ctx context.Context, req *mcp.CallToolRequest, input I
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, !input.NoNormalize, input.TrimStart, input.TrimEnd, logger)
+	err := actions.ImportFromURL(apiClient, input.URL, input.PlaylistName, input.Sync, input.TrimStart, input.TrimEnd, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}
@@ -198,7 +199,7 @@ type AddTrackInput struct {
 	PlaylistName string  `json:"playlist_name" jsonschema:"The name of the playlist to add to (creates new if not found). Can specify position like 'Name/1'."`
 	Title        string  `json:"title,omitempty" jsonschema:"Optional title for the track"`
 	IconID       string  `json:"icon_id,omitempty" jsonschema:"Optional icon ID (e.g. from upload_icon)"`
-	NoNormalize  bool    `json:"no_normalize,omitempty" jsonschema:"Disable audio normalization (default: false)"`
+	NoNormalize  bool    `json:"no_normalize,omitempty" jsonschema:"Deprecated: audio is normalized by Yoto during transcoding"`
 	TrimStart    float64 `json:"trim_start,omitempty" jsonschema:"Trim N seconds from the start"`
 	TrimEnd      float64 `json:"trim_end,omitempty" jsonschema:"Trim N seconds from the end"`
 }
@@ -209,7 +210,7 @@ func addTrackHandler(ctx context.Context, req *mcp.CallToolRequest, input AddTra
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 
-	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.Title, input.IconID, !input.NoNormalize, input.TrimStart, input.TrimEnd, logger)
+	err := actions.AddTrack(apiClient, input.PlaylistName, input.FilePath, input.Title, input.IconID, false, input.TrimStart, input.TrimEnd, logger)
 	if err != nil {
 		return nil, SimpleOutput{}, err
 	}

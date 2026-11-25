@@ -3,6 +3,7 @@ package yoto
 import (
         "fmt"
         "io"
+        "net/http"
         "os"
 
         "github.com/go-resty/resty/v2"
@@ -230,17 +231,22 @@ func (c *Client) CreateCard(card *Card) error {
 }
 
 func (c *Client) DownloadFile(url string, destPath string) error {
-        resp, err := c.http.R().
-                SetDoNotParseResponse(true).
-                Get(url)
-
+        // Use a plain net/http request rather than c.http so Yoto's Bearer
+        // token is never sent to third-party hosts (e.g. GitHub) or signed CDN URLs.
+        req, err := http.NewRequest(http.MethodGet, url, nil)
         if err != nil {
                 return err
         }
-        defer resp.RawBody().Close()
+        req.Header.Set("User-Agent", "yotocli")
 
-        if resp.IsError() {
-                return fmt.Errorf("download failed: %s", resp.Status())
+        resp, err := http.DefaultClient.Do(req)
+        if err != nil {
+                return err
+        }
+        defer resp.Body.Close()
+
+        if resp.StatusCode >= http.StatusBadRequest {
+                return fmt.Errorf("download failed: %s", resp.Status)
         }
 
         out, err := os.Create(destPath)
@@ -249,7 +255,7 @@ func (c *Client) DownloadFile(url string, destPath string) error {
         }
         defer out.Close()
 
-        _, err = io.Copy(out, resp.RawBody())
+        _, err = io.Copy(out, resp.Body)
         return err
 }
 

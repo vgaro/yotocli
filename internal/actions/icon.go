@@ -2,7 +2,6 @@ package actions
 
 import (
         "os"
-        "path/filepath"
         "strings"
 
         "github.com/vgaro/yotocli/internal/config"
@@ -14,10 +13,14 @@ import (
 func UploadIcon(client *yoto.Client, source string, name string, tags []string) (string, error) {
         path := source
         if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-                tmpDir := os.TempDir()
-                path = filepath.Join(tmpDir, "yoto_icon_temp.png") // Assume PNG, or API detects type?
-                // Note: DownloadFile is in client.go
+                tmpFile, err := os.CreateTemp("", "yoto_icon_*.png")
+                if err != nil {
+                        return "", err
+                }
+                path = tmpFile.Name()
+                tmpFile.Close()
                 if err := client.DownloadFile(source, path); err != nil {
+                        os.Remove(path)
                         return "", err
                 }
                 defer os.Remove(path)

@@ -77,6 +77,9 @@ func TestDownloadFile(t *testing.T) {
 	// Mock file content
 	content := "audio data"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			t.Errorf("DownloadFile should not send Authorization header to external/signed URLs, got %q", auth)
+		}
 		fmt.Fprint(w, content)
 	}))
 	defer server.Close()

@@ -34,14 +34,22 @@ If a position is provided, the track is inserted there. Otherwise, it is appende
 		playlistArg := args[0]
 		filePath := args[1]
 
-		return actions.AddTrack(apiClient, playlistArg, filePath, addTitle, addIcon, !addNoNormalize, addTrimStart, addTrimEnd, func(format string, args ...interface{}) {
+		return actions.AddTrack(apiClient, playlistArg, filePath, addTitle, addIcon, false, addTrimStart, addTrimEnd, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
 	},
 }
 
+// noNormalizeDeprecated explains --no-normalize to anyone still passing it. The
+// flag used to skip a local ffmpeg pass; Yoto's transcoder normalizes every
+// upload on its own, so there is no local pass left to skip.
+const noNormalizeDeprecated = "audio is normalized by Yoto during transcoding, so this flag does nothing"
+
 func init() {
 	addCmd.Flags().BoolVar(&addNoNormalize, "no-normalize", false, "Disable audio normalization")
+	if err := addCmd.Flags().MarkDeprecated("no-normalize", noNormalizeDeprecated); err != nil {
+		panic(err)
+	}
 	addCmd.Flags().StringVar(&addIcon, "icon", "", "Icon ID (hash or yoto:#...) to use for the track")
 	addCmd.Flags().StringVarP(&addTitle, "title", "t", "", "Title for the new track (defaults to filename)")
 	addCmd.Flags().Float64Var(&addTrimStart, "trim-start", 0, "Trim N seconds from the start")
