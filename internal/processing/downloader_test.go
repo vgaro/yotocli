@@ -129,6 +129,9 @@ func TestLooksLikeMP3(t *testing.T) {
 // network access.
 
 func TestDownloadFromURL_YouTubeVideo(t *testing.T) {
+	if testing.Short() || os.Getenv("CI") != "" {
+		t.Skip("skipping live YouTube test in -short/CI mode")
+	}
 	downloads := download(t, "https://www.youtube.com/watch?v=Ixrje2rXLMA")
 
 	assertNames(t, downloads, []string{"Dolly Parton - Jolene (Official Audio)"})
@@ -138,6 +141,9 @@ func TestDownloadFromURL_YouTubeVideo(t *testing.T) {
 // URL carrying a list parameter, so the test covers the case where the URL has
 // no single video to fall back on.
 func TestDownloadFromURL_YouTubePlaylist(t *testing.T) {
+	if testing.Short() || os.Getenv("CI") != "" {
+		t.Skip("skipping live YouTube test in -short/CI mode")
+	}
 	downloads := download(t, "https://www.youtube.com/playlist?list=PLfnx6nNQO1XM")
 
 	assertNames(t, downloads, []string{
@@ -165,6 +171,9 @@ func TestDownloadFromURL_RSSFeed(t *testing.T) {
 // TestDownloadFromURL_Cleanup checks the returned cleanup function removes the
 // downloads, and that calling it twice is not an error.
 func TestDownloadFromURL_Cleanup(t *testing.T) {
+	if testing.Short() || os.Getenv("CI") != "" {
+		t.Skip("skipping live YouTube test in -short/CI mode")
+	}
 	url := "https://www.youtube.com/watch?v=Ixrje2rXLMA"
 
 	downloads, cleanup, err := DownloadFromURL(url)
