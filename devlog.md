@@ -228,3 +228,16 @@
 - **Blockers:** None.
 - **Status/Next Steps:** Complete. Both CLI and MCP container are healthy and authenticated.
 
+## [2026-11-25] - [Repo-Cleanup-And-PR-Sync] - [Complete]
+- **Goal:** Address open GitHub PR #7 and Issue #6, fix CLI/MCP bugs and failing CI, and bring local binary, Docker service, and GitHub up to date.
+- **Activity:**
+  - Merged PR #7 (`fix(create): skip upload when Yoto already has the audio`) and rebased local `main`.
+  - Unified `cmd/create.go` onto `actions.AddTracks` with `--sync` support, concurrency limit 10, and SHA-256 deduplication.
+  - Fixed critical bug in `cmd/import.go` and `cmd/mcp_handlers.go` where `!noNormalize` (true by default) was erroneously passed as `syncPlaylist`; added explicit `--sync` / `sync` parameters and deprecated `--no-normalize`.
+  - Fixed `pkg/yoto/client.go` `DownloadFile` to use a plain HTTP client without Yoto Bearer `Authorization` headers (preventing token leakage and 403/400 failures on third-party icon/CDN URLs), and used `os.CreateTemp` in `internal/actions/icon.go`.
+  - Updated `internal/processing/downloader_test.go` to skip live YouTube network tests when `testing.Short()` or `CI` is set so GitHub Actions CI passes reliably without YouTube bot-check failures while preserving full local YouTube test coverage.
+  - Expanded `cmd/mcp_test.go` to register all MCP tools and regenerated CLI reference docs (`docs/commands/`), `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md`, and `docs/MCP.md`.
+  - Verified `go build`, `go vet`, `go test -short`, and full `go test` (including live YouTube tests) all pass.
+- **Blockers:** None.
+- **Status/Next Steps:** Rebuilding `./yoto` and `yoto-mcp`, pushing to GitHub, and verifying CI.
+
